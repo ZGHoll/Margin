@@ -20,9 +20,15 @@
     return null;
   }
 
+  function recipesFor(data, professionName) {
+    if (!data.professions) return data.recipes || [];
+    var found = data.professions.filter(function (p) { return p.name === professionName; })[0] || data.professions[0];
+    return found ? found.recipes : [];
+  }
+
   function computeRows(data, s) {
     var rows = [];
-    data.recipes.forEach(function (recipe) {
+    recipesFor(data, s.profession).forEach(function (recipe) {
       var cost = 0;
       var missing = [];
       var reagents = recipe.reagents.map(function (r) {
@@ -106,7 +112,7 @@
   }
 
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { computeRows: computeRows, priceFor: priceFor, formatGold: formatGold };
+    module.exports = { computeRows: computeRows, priceFor: priceFor, formatGold: formatGold, recipesFor: recipesFor };
   }
   if (typeof document === "undefined") return;
 
@@ -123,6 +129,7 @@
 
   function currentSettings() {
     return {
+      profession: $("profession").value,
       house: $("house").value,
       buyBasis: $("buyBasis").value,
       sellBasis: $("sellBasis").value,
@@ -142,8 +149,22 @@
     return node;
   }
 
+  function fillTiers(professionName, keep) {
+    var tierSelect = $("tier");
+    tierSelect.textContent = "";
+    var all = el("option", "All");
+    all.value = "";
+    tierSelect.appendChild(all);
+    var tiers = [];
+    recipesFor(data, professionName).forEach(function (r) { if (r.tier && tiers.indexOf(r.tier) === -1) tiers.push(r.tier); });
+    tiers.forEach(function (t) { var o = el("option", t); o.value = t; tierSelect.appendChild(o); });
+    tierSelect.value = keep && tiers.indexOf(keep) !== -1 ? keep : "";
+  }
+
   function render() {
     var s = currentSettings();
+    document.title = "WoW: Forever " + s.profession + " profit";
+    $("title").textContent = "WoW: Forever " + s.profession + " profit";
     saveSettings(s);
     var rows = computeRows(data, s);
     var body = $("rows");
@@ -198,9 +219,16 @@
     var wanted = saved.house && data.prices[saved.house] ? saved.house : String(data.default_house);
     houseSelect.value = wanted;
 
-    var tiers = [];
-    data.recipes.forEach(function (r) { if (r.tier && tiers.indexOf(r.tier) === -1) tiers.push(r.tier); });
-    tiers.forEach(function (t) { var o = el("option", t); o.value = t; $("tier").appendChild(o); });
+    var professionSelect = $("profession");
+    var professionList = data.professions || [{ name: data.profession || "Tailoring" }];
+    professionList.forEach(function (p) {
+      var option = el("option", p.name);
+      option.value = p.name;
+      professionSelect.appendChild(option);
+    });
+    var names = professionList.map(function (p) { return p.name; });
+    professionSelect.value = saved.profession && names.indexOf(saved.profession) !== -1 ? saved.profession : names[0];
+    fillTiers(professionSelect.value, saved.tier);
 
     $("buyBasis").value = saved.buyBasis || "p25";
     $("sellBasis").value = saved.sellBasis || "p25";
@@ -212,6 +240,7 @@
     ["house", "buyBasis", "sellBasis", "cut", "rankBy", "minListings", "tier", "hideIncomplete"].forEach(function (id) {
       $(id).addEventListener("change", render);
     });
+    professionSelect.addEventListener("change", function () { fillTiers(professionSelect.value, ""); render(); });
     $("search").addEventListener("input", render);
 
     var updated = new Date(data.updated);
@@ -219,8 +248,11 @@
     $("updated").textContent = "Prices updated " + updated.toLocaleString() +
       (ageHours > 4 ? " - this data is " + Math.round(ageHours) + " hours old, so the hourly update may have stopped." : "");
     if (ageHours > 4) $("updated").className = "warn";
-    $("title").textContent = "WoW: Forever " + data.profession + " profit";
-    document.title = "WoW: Forever " + data.profession + " profit";
+    if (data.errors && data.errors.length) {
+      var note = $("errors");
+      note.textContent = "Some data could not be loaded and is missing from this page: " + data.errors.join(" | ");
+      note.hidden = false;
+    }
     render();
   }
 
