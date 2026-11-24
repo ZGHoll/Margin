@@ -1,8 +1,10 @@
 {
   "region": "us",
-  "ruleset": 2,
-  "profession": "Tailoring",
-  "profession_fallback_id": 197,
+  "ruleset": 1,
+  "professions": [
+    { "name": "Tailoring", "fallback_id": 197 },
+    { "name": "Blacksmithing", "fallback_id": 164 }
+  ],
   "ah_cut": 0.05,
   "default_house": null,
   "refresh_recipes_hours": 24
