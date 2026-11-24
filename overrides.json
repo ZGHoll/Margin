@@ -1,0 +1,4 @@
+{
+  "_help": "Hand-set prices in gold, keyed by item ID. These beat auction and vendor prices. Example: {\"items\": {\"2320\": 0.001}} sets item 2320 to 10 copper. Leave items empty if you have none.",
+  "items": {}
+}

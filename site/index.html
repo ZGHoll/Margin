@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WoW: Forever profit</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1f2328; --muted: #656d76; --line: #d8dee4; --card: #f6f8fa;
+    --pos: #1a7f37; --neg: #cf222e; --warn: #9a6700; --accent: #0969da;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --line: #30363d; --card: #161b22;
+      --pos: #3fb950; --neg: #f85149; --warn: #d29922; --accent: #58a6ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  #updated { color: var(--muted); margin: 0 0 14px; font-size: 0.9rem; }
+  #updated.warn { color: var(--warn); }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+  label { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; color: var(--muted); }
+  label.check { flex-direction: row; align-items: center; gap: 8px; align-self: end; }
+  select, input[type=number], input[type=search] { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 100%; }
+  #summary { color: var(--muted); font-size: 0.85rem; margin: 6px 0; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--card); font-size: 0.8rem; color: var(--muted); position: sticky; top: 0; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.tier { color: var(--muted); white-space: nowrap; }
+  tr.main { cursor: pointer; }
+  tr.main:hover { background: var(--card); }
+  .pos { color: var(--pos); font-weight: 600; }
+  .neg { color: var(--neg); font-weight: 600; }
+  .warn { color: var(--warn); font-size: 0.8rem; }
+  tr.detail td { background: var(--card); }
+  tr.detail ul { margin: 0; padding-left: 18px; }
+  footer { color: var(--muted); font-size: 0.78rem; margin-top: 16px; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">WoW: Forever profit</h1>
+  <p id="updated">Loading prices...</p>
+
+  <section class="controls" aria-label="Settings">
+    <label>Auction house <select id="house"></select></label>
+    <label>Rank by
+      <select id="rankBy"><option value="profit">Profit per craft</option><option value="roi">Return on cost (%)</option></select>
+    </label>
+    <label>Buy reagents at
+      <select id="buyBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
+    </label>
+    <label>Sell crafts at
+      <select id="sellBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
+    </label>
+    <label>Auction house cut (%) <input id="cut" type="number" min="0" max="50" step="0.5"></label>
+    <label>Min. listings of the item <input id="minListings" type="number" min="0" step="1"></label>
+    <label>Skill tier <select id="tier"><option value="">All</option></select></label>
+    <label>Search <input id="search" type="search" placeholder="Recipe name"></label>
+    <label class="check"><input id="hideIncomplete" type="checkbox" checked> Hide recipes missing a price</label>
+  </section>
+
+  <p id="summary"></p>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th class="num">#</th><th>Recipe</th><th>Tier</th><th class="num">Profit</th><th class="num">Return</th><th class="num">Sells for</th><th class="num">Listed</th><th class="num">Reagent cost</th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <p class="warn" style="margin-top:8px">Click a recipe to see its reagents. Prices are estimates from hourly auction snapshots and do not include deposits.</p>
+  <footer>Unofficial fan tool. Data comes from Blizzard's game data API, which is not officially documented for WoW: Forever yet, so it can break without notice. Not affiliated with or endorsed by Blizzard Entertainment.</footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
