@@ -4,6 +4,7 @@
   "use strict";
 
   var BASIS = { lowest: 0, p25: 1, median: 2 };
+  var SCARCE = 3; // fewer listings than this = scarce reagent / thin market
 
   // Price of one item: hand-set override, then auction price, then vendor price.
   function priceFor(data, houseId, itemId, basis, allowVendor) {
@@ -31,6 +32,7 @@
     recipesFor(data, s.profession).forEach(function (recipe) {
       var cost = 0;
       var missing = [];
+      var scarce = [];
       var reagents = recipe.reagents.map(function (r) {
         var found = priceFor(data, s.house, r.id, s.buyBasis, true);
         var name = r.name || data.names[String(r.id)] || "Item " + r.id;
@@ -39,7 +41,10 @@
           return { name: name, qty: r.qty, price: null, source: "missing" };
         }
         cost += found.price * r.qty;
-        return { name: name, qty: r.qty, price: found.price, source: found.source };
+        var hrow = data.prices[String(s.house)] && data.prices[String(s.house)][String(r.id)];
+        var rl = hrow ? hrow[3] : 0;
+        if (found.source === "auction" && rl < SCARCE) scarce.push(name);
+        return { name: name, qty: r.qty, price: found.price, source: found.source, listings: rl };
       });
 
       var sellFound = recipe.item_id ? priceFor(data, s.house, recipe.item_id, s.sellBasis, false) : null;
@@ -61,6 +66,7 @@
         listings: listings,
         cost: status === "ok" ? cost : null,
         reagents: reagents,
+        scarce: scarce,
         status: status,
         profit: null,
         roi: null,
@@ -77,11 +83,12 @@
       if (q && r.name.toLowerCase().indexOf(q) === -1) return false;
       if (s.tier && r.tier !== s.tier) return false;
       if (s.hideIncomplete && r.status !== "ok") return false;
+      if (s.hideScarce && r.scarce.length) return false;
       if (s.minListings > 0 && (r.status !== "ok" || r.listings < s.minListings)) return false;
       return true;
     });
 
-    var key = s.rankBy === "roi" ? "roi" : "profit";
+    var key = s.rankBy === "roi" ? "roi" : (s.rankBy === "depth" ? "listings" : "profit");
     rows.sort(function (a, b) {
       if (a[key] === null && b[key] === null) return a.name.localeCompare(b.name);
       if (a[key] === null) return 1;
@@ -123,6 +130,11 @@
   var ICONS = {
     Tailoring: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 26 24 6"/><ellipse cx="25" cy="5" rx="1.6" ry="2.6" transform="rotate(40 25 5)"/><path d="M9 10c6-4 9 4 14 0M7 16c6-4 9 4 14 0M11 22c4-2 7 2 11 0" opacity=".8"/></svg>',
     Blacksmithing: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h17c0 4-3 6-7 6v3h5v4H9v-4h5v-3C9 15 6 13 4 9z"/><path d="M21 9h6c-1 3-3 4-6 4"/><path d="M8 27h16"/></svg>',
+    Alchemy: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3h8M13 3v8L5 25a2 2 0 0 0 2 3h18a2 2 0 0 0 2-3l-8-14V3"/><path d="M9 20h14"/></svg>',
+    Enchanting: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 27 19 13"/><path d="M22 3l1.6 4.4L28 9l-4.400 1.600L22 15l-1.600-4.400L16 9l4.400-1.600z"/><path d="M8 7v4M6 9h4M26 21v4M24 23h4"/></svg>',
+    Engineering: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="16" r="5"/><path d="M16 3v4M16 25v4M3 16h4M25 16h4M7 7l3 3M22 22l3 3M25 7l-3 3M10 22l-3 3"/></svg>',
+    Leatherworking: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4l-5 6 4 4 3-2v16h10V12l3 2 4-4-5-6-4 3h-6z"/></svg>',
+    Cooking: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14h22l-2 11a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3z"/><path d="M3 14h26M12 5c-2 2 2 3 0 5M18 5c-2 2 2 3 0 5"/></svg>',
     _: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l3 8 8 1-6 6 2 9-7-4-7 4 2-9-6-6 8-1z"/></svg>'
   };
   function iconFor(name) { return ICONS[name] || ICONS._; }
@@ -146,6 +158,7 @@
       search: $("search").value,
       tier: $("tier").value,
       hideIncomplete: $("hideIncomplete").checked,
+      hideScarce: $("hideScarce").checked,
     };
   }
 
@@ -206,6 +219,7 @@
     $("profIcon").innerHTML = iconFor(s.profession);
     renderHint(s.profession);
     saveSettings(s);
+    syncUrl(s);
     var rows = computeRows(data, s);
     var body = $("rows");
     body.textContent = "";
@@ -242,6 +256,8 @@
       nameCell.appendChild(el("div", r.name, "rname"));
       if (r.tier) nameCell.appendChild(el("div", r.tier, "rtier"));
       if (r.status !== "ok") nameCell.appendChild(el("div", r.status, "warn"));
+      if (r.scarce.length) nameCell.appendChild(el("span", "Scarce reagent: " + r.scarce.join(", "), "badge"));
+      if (r.status === "ok" && r.listings < SCARCE) nameCell.appendChild(el("span", "Thin market (" + r.listings + " listed)", "badge"));
       tr.appendChild(nameCell);
 
       var profit = el("td", null, "num");
@@ -255,8 +271,8 @@
       }
       tr.appendChild(profit);
       tr.appendChild(el("td", r.roi === null ? "-" : Math.round(r.roi * 100) + "%", "num"));
-      tr.appendChild(el("td", formatGold(r.sell), "num"));
-      tr.appendChild(el("td", String(r.listings), "num"));
+      tr.appendChild(el("td", formatGold(r.sell), "num hide-sm"));
+      tr.appendChild(el("td", String(r.listings), "num hide-sm"));
       tr.appendChild(el("td", formatGold(r.cost), "num"));
 
       var detail = el("tr", null, "detail");
@@ -265,7 +281,7 @@
       dcell.colSpan = 7;
       var wrap = el("div", null, "reag");
       r.reagents.forEach(function (g) {
-        var chip = el("span", g.qty + " x " + g.name + (g.price === null ? "" : "  " + formatGold(g.price) + " each = " + formatGold(g.price * g.qty)));
+        var chip = el("span", g.qty + " x " + g.name + (g.price === null ? "" : "  " + formatGold(g.price) + " each = " + formatGold(g.price * g.qty) + (g.source === "auction" ? " (" + g.listings + " listed)" : "")));
         chip.appendChild(el("em", g.source === "missing" ? "no price" : g.source, "src-" + g.source));
         wrap.appendChild(chip);
       });
@@ -286,6 +302,32 @@
     });
   }
 
+  function syncUrl(s) {
+    try { history.replaceState(null, "", "#p=" + encodeURIComponent(s.profession) + "&h=" + encodeURIComponent(s.house)); } catch (e) { /* ignore */ }
+  }
+  function readHash() {
+    var out = {};
+    String(location.hash || "").replace(/^#/, "").split("&").forEach(function (part) {
+      var kv = part.split("=");
+      if (kv[0] && kv[1]) { try { out[kv[0]] = decodeURIComponent(kv[1]); } catch (e) { /* ignore */ } }
+    });
+    return out;
+  }
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    var btn = $("themeBtn");
+    if (btn) btn.textContent = theme === "light" ? "Dark mode" : "Light mode";
+    try { localStorage.setItem("forever-theme", theme); } catch (e) { /* ignore */ }
+  }
+  function ahTypeFromCut(pct) { return pct === 5 ? "faction" : (pct === 15 ? "neutral" : "custom"); }
+  function agoText(ms) {
+    var m = Math.round(ms / 60000);
+    if (m < 2) return "just now";
+    if (m < 90) return m + " minutes ago";
+    var h = Math.round(m / 60);
+    return h < 48 ? h + " hours ago" : Math.round(h / 24) + " days ago";
+  }
+
   function onProfessionChange() {
     $("profWrap").className = "select-wrap touched";
     fillTiers($("profession").value, "");
@@ -300,6 +342,8 @@
       option.value = String(h.id);
       houseSelect.appendChild(option);
     });
+    var hash = readHash();
+    if (hash.h && data.prices[hash.h]) saved.house = hash.h;
     var wanted = saved.house && data.prices[saved.house] ? saved.house : String(data.default_house);
     houseSelect.value = wanted;
 
@@ -310,6 +354,7 @@
       option.value = n;
       professionSelect.appendChild(option);
     });
+    if (hash.p && names.indexOf(hash.p) !== -1) saved.profession = hash.p;
     professionSelect.value = saved.profession && names.indexOf(saved.profession) !== -1 ? saved.profession : names[0];
     fillTiers(professionSelect.value, saved.tier);
 
@@ -319,8 +364,26 @@
     $("rankBy").value = saved.rankBy || "profit";
     $("minListings").value = saved.minListings || 0;
     $("hideIncomplete").checked = saved.hideIncomplete !== false;
+    $("hideScarce").checked = !!saved.hideScarce;
+    $("ahType").value = ahTypeFromCut(parseFloat($("cut").value));
+    $("ahType").addEventListener("change", function () {
+      if ($("ahType").value === "faction") $("cut").value = 5;
+      if ($("ahType").value === "neutral") $("cut").value = 15;
+      render();
+    });
+    $("cut").addEventListener("input", function () { $("ahType").value = ahTypeFromCut(parseFloat($("cut").value)); });
+    $("themeBtn").addEventListener("click", function () {
+      applyTheme(document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light");
+    });
+    $("shareBtn").addEventListener("click", function () {
+      var btn = $("shareBtn");
+      var done = function (msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = "Copy link"; }, 2200); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(location.href).then(function () { done("Link copied!"); }, function () { done("Copy the address bar"); });
+      } else { done("Copy the address bar"); }
+    });
 
-    ["house", "buyBasis", "sellBasis", "cut", "rankBy", "minListings", "tier", "hideIncomplete"].forEach(function (id) {
+    ["house", "buyBasis", "sellBasis", "cut", "rankBy", "minListings", "tier", "hideIncomplete", "hideScarce"].forEach(function (id) {
       $(id).addEventListener("change", render);
     });
     professionSelect.addEventListener("change", onProfessionChange);
@@ -328,7 +391,7 @@
 
     var updated = new Date(data.updated);
     var ageHours = (Date.now() - updated.getTime()) / 3600000;
-    $("updated").textContent = "Prices updated " + updated.toLocaleString() +
+    $("updated").textContent = "Last updated " + updated.toLocaleString() + " (" + agoText(Date.now() - updated.getTime()) + ")" +
       (ageHours > 4 ? " - this data is " + Math.round(ageHours) + " hours old, so the hourly update may have stopped." : "");
     if (ageHours > 4) $("updatedBox").className = "status stale";
     if (data.errors && data.errors.length) {
@@ -338,6 +401,10 @@
     }
     render();
   }
+
+  var startTheme = "dark";
+  try { startTheme = localStorage.getItem("forever-theme") || "dark"; } catch (e) { /* ignore */ }
+  applyTheme(startTheme === "light" ? "light" : "dark");
 
   fetch("data.json?v=" + Date.now())
     .then(function (response) { if (!response.ok) throw new Error("HTTP " + response.status); return response.json(); })

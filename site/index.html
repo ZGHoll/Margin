@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="dark light">
 <meta name="description" content="Hourly crafting profit rankings for WoW: Forever. Pick a profession and an auction house to see the most profitable crafts.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <title>Crafter's Ledger - WoW: Forever profit rankings</title>
@@ -13,12 +13,19 @@
     --gold: #d6b26a; --gold-hi: #f3dc9a; --gold-lo: #8c6d2e;
     --text: #ebe8df; --muted: #9ba2b8; --faint: #6d748b;
     --pos: #72d68f; --neg: #ff7b7b; --warn: #e8b45a; --arcane: #8798ff; --ember: #ff9c52;
+    --topbar: rgba(9, 11, 18, 0.82); --body2: #c9ccd8; color-scheme: dark;
     --serif: "Cinzel", "Trajan Pro", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
+  :root[data-theme="light"] {
+    --bg0: #ece4d0; --bg1: #f8f3e6; --panel: #fffdf6; --panel2: #f4ecd8; --line: #d8ccae; --line2: #bfae84;
+    --gold: #9a7420; --gold-hi: #6f4f0e; --gold-lo: #b89a54;
+    --text: #2a2418; --muted: #5d5442; --faint: #807559;
+    --pos: #1d7a3c; --neg: #b3261e; --warn: #8a5a00; --arcane: #3f51b5; --ember: #b05a12;
+    --topbar: rgba(248, 243, 230, 0.88); --body2: #3d3626; color-scheme: light;
+  }
   * { box-sizing: border-box; }
-  select, option, optgroup { color: #ebe8df; background-color: #10131c; }
-  select { color-scheme: dark; }
+  select, option, optgroup { color: var(--text); background-color: var(--bg1); }
   html { scroll-behavior: smooth; scroll-padding-top: 70px; }
   body {
     margin: 0; color: var(--text); font: 15px/1.5 var(--sans); min-height: 100vh;
@@ -33,13 +40,16 @@
   .wrap { max-width: 1120px; margin: 0 auto; padding: 0 18px; }
 
   /* ---------- top bar ---------- */
-  .topbar { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px); background: rgba(9, 11, 18, 0.82); border-bottom: 1px solid var(--line); }
+  .topbar { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px); background: var(--topbar); border-bottom: 1px solid var(--line); }
   .topbar .wrap { display: flex; align-items: center; gap: 14px; height: 58px; }
   .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
   .brand svg { width: 30px; height: 34px; flex: none; }
   .brand b { font: 700 1.05rem var(--serif); letter-spacing: 0.12em; color: var(--gold-hi); }
   .brand small { display: block; font: 0.62rem var(--sans); letter-spacing: 0.22em; color: var(--muted); text-transform: uppercase; margin-top: -2px; }
-  nav { margin-left: auto; display: flex; gap: 6px; }
+  nav { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+  .navbtn { font: inherit; font-size: 0.82rem; color: var(--gold-hi); background: transparent; border: 1px solid var(--line2); border-radius: 999px; padding: 5px 12px; cursor: pointer; white-space: nowrap; }
+  .navbtn:hover, .navbtn:focus-visible { border-color: var(--gold); background: rgba(214, 178, 106, 0.12); outline: none; }
+  .badge { display: inline-block; margin: 4px 6px 0 0; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; color: var(--warn); border: 1px solid rgba(232, 180, 90, 0.45); background: rgba(232, 180, 90, 0.08); }
   nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 0.9rem; }
   nav a:hover, nav a:focus-visible { color: var(--gold-hi); background: rgba(214, 178, 106, 0.1); outline: none; }
 
@@ -49,7 +59,7 @@
     background: linear-gradient(180deg, var(--gold-hi), var(--gold) 60%, var(--gold-lo)); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .hero p { margin: 0 auto; max-width: 620px; color: var(--muted); }
   .status { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 0.82rem; color: var(--muted);
-    padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: rgba(19, 23, 36, 0.7); }
+    padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pos); box-shadow: 0 0 8px var(--pos); }
   .status.stale { color: var(--warn); border-color: rgba(232, 180, 90, 0.5); }
   .status.stale .dot { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
@@ -75,7 +85,7 @@
   .select-wrap { position: relative; }
   .select-wrap select { appearance: none; -webkit-appearance: none; width: 100%; font: 600 1.15rem var(--sans); color: var(--text); cursor: pointer;
     background: var(--bg1); border: 2px solid var(--gold); border-radius: 10px; padding: 14px 56px 14px 58px; min-height: 58px; }
-  .select-wrap select:hover { background: #121726; }
+  .select-wrap select:hover { background: var(--panel2); }
   .select-wrap select:focus-visible { outline: 3px solid rgba(243, 220, 154, 0.5); outline-offset: 2px; }
   .select-wrap .icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; color: var(--gold-hi); pointer-events: none; }
   .select-wrap .icon svg { width: 100%; height: 100%; }
@@ -132,7 +142,7 @@
   .bar { height: 4px; border-radius: 2px; background: rgba(114, 214, 143, 0.18); margin-top: 5px; min-width: 90px; }
   .bar i { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg, #3fae63, var(--pos)); }
   .warn { color: var(--warn); font-size: 0.78rem; }
-  tr.detail td { background: rgba(7, 9, 15, 0.5); }
+  tr.detail td { background: var(--bg1); }
   .reag { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 0; }
   .reag span { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 0.82rem; }
   .reag em { font-style: normal; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; margin-left: 6px; padding: 1px 6px; border-radius: 4px; }
@@ -146,7 +156,7 @@
 
   /* ---------- about ---------- */
   .about-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
-  .about-grid p, .about-grid li { color: #c9ccd8; font-size: 0.92rem; }
+  .about-grid p, .about-grid li { color: var(--body2); font-size: 0.92rem; }
   .about-grid p { margin: 0 0 8px; }
   .about-grid ul { margin: 0; padding-left: 18px; }
   .about-grid li { margin-bottom: 5px; }
@@ -159,7 +169,14 @@
     .podium { grid-template-columns: 1fr; }
     .brand small { display: none; }
     .select-wrap select { font-size: 1.05rem; }
-    th, td { padding: 9px 9px; }
+    th, td { padding: 9px 8px; }
+    table { min-width: 0; }
+    .hide-sm { display: none; }
+    .wrap { padding: 0 14px; }
+    nav a { display: none; }
+    .navbtn { padding: 5px 9px; font-size: 0.76rem; }
+    .brand b { font-size: 0.9rem; letter-spacing: 0.08em; }
+    .panel { padding: 14px; }
   }
 </style>
 </head>
@@ -176,8 +193,9 @@
       <span><b>CRAFTER'S LEDGER</b><small>A tool by Suln</small></span>
     </a>
     <nav aria-label="Main">
-      <a href="#top">Rankings</a>
       <a href="#about">About</a>
+      <button class="navbtn" id="shareBtn" type="button">Copy link</button>
+      <button class="navbtn" id="themeBtn" type="button">Light mode</button>
     </nav>
   </div>
 </header>
@@ -216,7 +234,7 @@
       <summary>Filters and price settings</summary>
       <div class="grid">
         <label class="field">Rank by
-          <select id="rankBy"><option value="profit">Profit per craft</option><option value="roi">Return on cost (%)</option></select>
+          <select id="rankBy"><option value="profit">Profit per craft</option><option value="roi">Return on cost (%)</option><option value="depth">Most listed (market depth)</option></select>
         </label>
         <label class="field">Buy reagents at
           <select id="buyBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
@@ -224,11 +242,15 @@
         <label class="field">Sell crafts at
           <select id="sellBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
         </label>
+        <label class="field">Auction house type
+          <select id="ahType"><option value="faction">Faction house (5% cut)</option><option value="neutral">Neutral house (15% cut)</option><option value="custom">Custom cut</option></select>
+        </label>
         <label class="field">Auction house cut (%) <input id="cut" type="number" min="0" max="50" step="0.5"></label>
         <label class="field">Min. listings of the item <input id="minListings" type="number" min="0" step="1"></label>
         <label class="field">Skill tier <select id="tier"><option value="">All</option></select></label>
         <label class="field">Search recipes <input id="search" type="search" placeholder="Recipe name"></label>
         <label class="field check"><input id="hideIncomplete" type="checkbox" checked> Hide recipes missing a price</label>
+        <label class="field check"><input id="hideScarce" type="checkbox"> Hide crafts needing a scarce reagent</label>
       </div>
     </details>
   </section>
@@ -241,12 +263,12 @@
   <div class="tablewrap">
     <table>
       <thead>
-        <tr><th class="num">#</th><th>Recipe</th><th class="num">Profit</th><th class="num">Return</th><th class="num">Sells for</th><th class="num">Listed</th><th class="num">Reagent cost</th></tr>
+        <tr><th class="num">#</th><th>Recipe</th><th class="num">Profit</th><th class="num">Return</th><th class="num hide-sm">Sells for</th><th class="num hide-sm">Listed</th><th class="num">Reagent cost</th></tr>
       </thead>
       <tbody id="rows"></tbody>
     </table>
   </div>
-  <p class="hint">Click a recipe to see its reagents and where each price came from. Estimates only: deposits are not included.</p>
+  <p class="hint">Click a recipe to see its reagents and where each price came from. "Scarce" and "thin market" mean fewer than 3 items are listed, so the price may not hold. Estimates only: deposits are not included.</p>
 
   <div class="divider" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M9 1l2.600 6.400L18 9l-6.400 2.600L9 18l-2.600-6.400L0 9l6.400-1.600z" fill="currentColor"/></svg></div>
 
@@ -281,7 +303,7 @@
         <h2>Good to know</h2>
         <ul>
           <li>Prices are hourly snapshots and can lag what you see in game.</li>
-          <li>Deposits are not included, and the auction house cut is an assumption you can change.</li>
+          <li>Deposits are not included. The cut is 5% at faction houses and 15% at neutral ones; pick yours in the filters.</li>
           <li>Blizzard has not published official documentation for WoW: Forever's data, so some items or recipes may be missing or change without notice.</li>
           <li>Treat every number as an estimate and check the in-game auction house before you commit a lot of gold.</li>
         </ul>
