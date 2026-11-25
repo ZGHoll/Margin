@@ -41,8 +41,9 @@
     "days": 28
   },
   "discord": {
-    "enabled": true,
+    "enabled": false,
     "top_n": 5,
     "hours_between_posts": 24
-  }
+  },
+  "house_labels": {}
 }

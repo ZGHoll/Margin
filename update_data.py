@@ -483,6 +483,11 @@ def main():
         if recipe["item_id"] and recipe["item"]:
             names[str(recipe["item_id"])] = recipe["item"]
 
+    labels = config.get("house_labels") or {}
+    for h in houses:
+        if labels.get(str(h["id"])):
+            h["label"] = str(labels[str(h["id"])])
+
     default_house = config.get("default_house") or max(houses, key=lambda h: h["items"])["id"]
     data = {
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
