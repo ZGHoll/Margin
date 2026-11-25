@@ -67,6 +67,38 @@
 
   .aboutlink { margin: 12px 0 0; font-size: 0.88rem; }
   .aboutlink a { text-decoration: none; border-bottom: 1px dotted var(--gold-lo); }
+
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; border-bottom: 1px solid var(--line); margin-bottom: 16px; scrollbar-width: thin; }
+  .tab { font: 600 0.9rem var(--sans); color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 8px 8px 0 0; padding: 9px 14px; cursor: pointer; white-space: nowrap; }
+  .tab:hover, .tab:focus-visible { color: var(--gold-hi); outline: none; background: rgba(214, 178, 106, 0.08); }
+  .tab.on { color: var(--gold-hi); border-color: var(--line2); border-bottom-color: var(--gold); background: var(--panel); }
+  .count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--gold); color: #1a1405; font-size: 0.74rem; text-align: center; }
+  .tabpanel[hidden] { display: none; }
+  .lead { color: var(--muted); margin: 0 0 14px; max-width: 760px; }
+  label.inline { margin-bottom: 12px; }
+  td.acts { white-space: nowrap; text-align: right; width: 84px; }
+  .icon-btn { font: 600 1.05rem var(--sans); width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line2); background: var(--panel2); color: var(--gold-hi); cursor: pointer; margin-left: 4px; }
+  .icon-btn:hover, .icon-btn:focus-visible { border-color: var(--gold); outline: none; }
+  .icon-btn.on { color: #f3c542; border-color: var(--gold); }
+  .link-btn { font: inherit; font-size: 0.85rem; background: none; border: 0; color: var(--neg); cursor: pointer; text-decoration: underline; padding: 4px; }
+  input.qty { width: 84px; font: inherit; color: var(--text); background: var(--bg1); border: 1px solid var(--line2); border-radius: 8px; padding: 6px 8px; text-align: right; min-height: 36px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 0 0 16px; }
+  .stat { background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .stat-l { font-size: 0.74rem; letter-spacing: 0.06em; color: var(--muted); }
+  .stat-v { font: 700 1.3rem var(--sans); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .sub-h { font: 700 0.85rem var(--serif); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin: 20px 0 8px; }
+  .btnrow { display: flex; gap: 10px; margin-top: 14px; }
+  .hist { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .hist-title { font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .hrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 4px 0; font-size: 0.84rem; }
+  .hname { min-width: 150px; font-weight: 600; }
+  .spark { width: 120px; height: 30px; color: var(--gold); flex: none; }
+  .htext { color: var(--muted); }
+  .hrow em { font-style: normal; font-size: 0.72rem; padding: 1px 8px; border-radius: 999px; }
+  .trend-cheap { background: rgba(114, 214, 143, 0.16); color: var(--pos); }
+  .trend-expensive { background: rgba(255, 123, 123, 0.16); color: var(--neg); }
+  footer a { color: var(--gold-hi); }
   .divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--gold-lo); }
   .divider::before, .divider::after { content: ""; height: 1px; flex: 1; background: linear-gradient(90deg, transparent, var(--gold-lo)); }
   .divider::after { background: linear-gradient(270deg, transparent, var(--gold-lo)); }
@@ -172,6 +204,8 @@
     .brand small { display: none; }
     .select-wrap select { font-size: 1.05rem; }
     th, td { padding: 9px 8px; }
+    .icon-btn { width: 32px; height: 32px; margin-left: 2px; }
+    td.acts { width: 72px; }
     table { min-width: 0; }
     .hide-sm { display: none; }
     .wrap { padding: 0 14px; }
@@ -257,11 +291,21 @@
         <label class="field">Search recipes <input id="search" type="search" placeholder="Recipe name"></label>
         <label class="field check"><input id="hideIncomplete" type="checkbox" checked> Hide recipes missing a price</label>
         <label class="field check"><input id="hideScarce" type="checkbox"> Hide crafts needing a scarce reagent</label>
+        <label class="field check"><input id="favOnly" type="checkbox"> Show favorites only</label>
       </div>
     </details>
   </section>
 
-  <section id="podiumSection" style="margin-top:22px" aria-label="Top crafts">
+  <div class="tabs" role="tablist" aria-label="Tools" style="margin-top:22px">
+    <button type="button" role="tab" class="tab on" data-tab="rank">Crafting rankings</button>
+    <button type="button" role="tab" class="tab" data-tab="list">Shopping list <span class="count" id="listCount">0</span></button>
+    <button type="button" role="tab" class="tab" data-tab="cvb">Craft vs buy</button>
+    <button type="button" role="tab" class="tab" data-tab="cons">Raid consumables</button>
+    <button type="button" role="tab" class="tab" data-tab="lvl">Leveling helper</button>
+  </div>
+
+  <div id="tab-rank" class="tabpanel">
+  <section id="podiumSection" aria-label="Top crafts">
     <div class="podium" id="podium"></div>
   </section>
 
@@ -269,12 +313,35 @@
   <div class="tablewrap">
     <table>
       <thead>
-        <tr><th class="num">#</th><th>Recipe</th><th class="num">Profit</th><th class="num">Return</th><th class="num hide-sm">Sells for</th><th class="num hide-sm">Listed</th><th class="num">Reagent cost</th></tr>
+        <tr><th class="num">#</th><th>Recipe</th><th class="num">Profit</th><th class="num">Return</th><th class="num hide-sm">Sells for</th><th class="num hide-sm">Listed</th><th class="num">Reagent cost</th><th><span class="sr">Favorite and add to list</span></th></tr>
       </thead>
       <tbody id="rows"></tbody>
     </table>
   </div>
   <p class="hint">Click a recipe to see its reagents and where each price came from. "Scarce" and "thin market" mean fewer than 3 items are listed, so the price may not hold. Estimates only: deposits are not included.</p>
+
+  </div>
+
+  <div id="tab-list" class="tabpanel" hidden>
+    <p class="lead">Add recipes with the + button in the rankings. This adds up every reagent you need and shows where each is cheapest.</p>
+    <div id="listBody"></div>
+  </div>
+
+  <div id="tab-cvb" class="tabpanel" hidden>
+    <p class="lead">Crafting for yourself? This compares what a recipe costs to make with what the finished item costs to buy, for the profession and auction house chosen above.</p>
+    <label class="field check inline"><input id="cvbOnly" type="checkbox" checked> Only show recipes where crafting is cheaper</label>
+    <div id="cvbBody"></div>
+  </div>
+
+  <div id="tab-cons" class="tabpanel" hidden>
+    <p class="lead">Plan your raid night: enter how many flasks, potions, food and so on you need, and see what it costs to craft them against buying them.</p>
+    <div id="consBody"></div>
+  </div>
+
+  <div id="tab-lvl" class="tabpanel" hidden>
+    <p class="lead">A rough leveling guide for the chosen profession: recipes sorted by lowest net cost (reagents minus what the result resells for). Use the Skill tier filter above to focus on your level. Forever's data does not include skill-up ranges, so check the recipe's color in game.</p>
+    <div id="lvlBody"></div>
+  </div>
 
   <div class="divider" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M9 1l2.600 6.400L18 9l-6.400 2.600L9 18l-2.600-6.400L0 9l6.400-1.600z" fill="currentColor"/></svg></div>
 
@@ -320,7 +387,7 @@
 </main>
 
 <footer>
-  <div class="wrap">Crafter's Ledger, a free tool by Suln, is an unofficial fan-made tool. It is not affiliated with or endorsed by Blizzard Entertainment. World of Warcraft and related names are trademarks of their owners.</div>
+  <div class="wrap">Crafter's Ledger, a free tool by Suln, is an unofficial fan-made tool. It is not affiliated with or endorsed by Blizzard Entertainment. World of Warcraft and related names are trademarks of their owners. <a id="feedbackLink" href="#" hidden>Report a bug or suggest an idea</a></div>
 </footer>
 
 <script src="app.js"></script>
