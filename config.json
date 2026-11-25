@@ -33,5 +33,16 @@
   ],
   "ah_cut": 0.05,
   "default_house": null,
-  "refresh_recipes_hours": 24
+  "refresh_recipes_hours": 24,
+  "site_url": "https://suln.live",
+  "history": {
+    "enabled": true,
+    "hours_between_points": 6,
+    "days": 28
+  },
+  "discord": {
+    "enabled": false,
+    "top_n": 5,
+    "hours_between_posts": 24
+  }
 }

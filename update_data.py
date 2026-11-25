@@ -302,6 +302,136 @@ def get_auction_prices(token, region, ruleset, wanted_ids):
     return prices, house_list
 
 
+
+# ----------------------------------------------------------------------------
+# Price history (for the little charts on the page)
+# ----------------------------------------------------------------------------
+HISTORY_FILE = CACHE_DIR / "history.json"
+
+
+def update_history(config, data):
+    """Adds one snapshot (25th percentile price, in copper) for the default house every few hours."""
+    settings = config.get("history") or {}
+    if settings.get("enabled", True) is False:
+        return
+    gap = float(settings.get("hours_between_points", 6)) * 3600
+    max_points = max(2, int(float(settings.get("days", 28)) * 24 * 3600 / gap))
+    house = str(data["default_house"])
+    hist = load_json(HISTORY_FILE, {}) or {}
+    if hist.get("house") != house or not isinstance(hist.get("times"), list) or not isinstance(hist.get("items"), dict):
+        hist = {"house": house, "times": [], "items": {}}
+    now = int(time.time())
+    if not hist["times"] or now - hist["times"][-1] >= gap - 600:
+        count = len(hist["times"])
+        hist["times"].append(now)
+        seen = set()
+        for item_id, row in (data["prices"].get(house) or {}).items():
+            price = row[1] if len(row) > 1 else 0
+            series = hist["items"].setdefault(item_id, [None] * count)
+            series.append(int(round(price * COPPER_PER_GOLD)) if price and price > 0 else None)
+            seen.add(item_id)
+        for item_id, series in hist["items"].items():
+            if item_id not in seen:
+                series.append(None)
+        extra = len(hist["times"]) - max_points
+        if extra > 0:
+            hist["times"] = hist["times"][extra:]
+            for item_id in list(hist["items"]):
+                hist["items"][item_id] = hist["items"][item_id][extra:]
+                if not any(v is not None for v in hist["items"][item_id]):
+                    del hist["items"][item_id]
+        save_json(HISTORY_FILE, hist)
+    save_json(SITE_DIR / "history.json", hist)
+    print(f"History: {len(hist['times'])} snapshots for house {house}.")
+
+
+# ----------------------------------------------------------------------------
+# Optional Discord post of the best crafts
+# ----------------------------------------------------------------------------
+def price_for(data, house, item_id, basis, allow_vendor):
+    key = str(item_id)
+    override = data["overrides"].get(key)
+    if override and override > 0:
+        return override
+    row = (data["prices"].get(str(house)) or {}).get(key)
+    if row and row[basis] and row[basis] > 0:
+        return row[basis]
+    if allow_vendor:
+        vendor = data["vendor"].get(key)
+        if vendor and vendor > 0:
+            return vendor
+    return None
+
+
+def top_crafts(data, house, per_profession, min_listings=3):
+    cut = data.get("ah_cut", 0.05)
+    result = []
+    for profession in data["professions"]:
+        rows = []
+        for recipe in profession["recipes"]:
+            if not recipe.get("item_id"):
+                continue
+            sell = price_for(data, house, recipe["item_id"], 1, False)
+            listing = (data["prices"].get(str(house)) or {}).get(str(recipe["item_id"]))
+            if not sell or not listing or listing[3] < min_listings:
+                continue
+            cost, ok = 0, True
+            for reagent in recipe["reagents"]:
+                price = price_for(data, house, reagent["id"], 1, True)
+                if price is None:
+                    ok = False
+                    break
+                cost += price * reagent["qty"]
+            if ok:
+                rows.append((recipe["qty"] * sell * (1 - cut) - cost, recipe["name"], cost))
+        rows.sort(reverse=True)
+        result.append((profession["name"], rows[:per_profession]))
+    return result
+
+
+def fmt_gold(value):
+    return f"{value:,.0f}g" if abs(value) >= 100 else f"{value:.2f}g"
+
+
+def maybe_post_discord(config, data):
+    settings = config.get("discord") or {}
+    url = os.environ.get("DISCORD_WEBHOOK_URL", "").strip()
+    if not url or not settings.get("enabled", False):
+        return
+    state_file = CACHE_DIR / "discord.json"
+    state = load_json(state_file, {}) or {}
+    gap = float(settings.get("hours_between_posts", 24)) * 3600
+    if time.time() - state.get("last", 0) < gap - 600:
+        return
+    house = data["default_house"]
+    house_name = next((h["name"] for h in data["houses"] if h["id"] == house), f"House {house}")
+    fields = []
+    for name, rows in top_crafts(data, house, int(settings.get("top_n", 5))):
+        if rows:
+            value = "\n".join(f"{i}. {n} - **{fmt_gold(p)}** profit (cost {fmt_gold(c)})" for i, (p, n, c) in enumerate(rows, 1))
+            fields.append({"name": name, "value": value[:1000], "inline": False})
+    if not fields:
+        return
+    embed = {
+        "title": "Best crafts right now",
+        "description": f"{house_name} auction house, 25th percentile prices, items with 3+ listings.",
+        "color": 0xD6B26A,
+        "fields": fields,
+        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    if config.get("site_url"):
+        embed["url"] = config["site_url"]
+    body = json.dumps({"username": "Crafter's Ledger", "embeds": [embed]}).encode()
+    request = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json", "User-Agent": "crafters-ledger"})
+    try:
+        with urllib.request.urlopen(request, timeout=30):
+            pass
+        save_json(state_file, {"last": time.time()})
+        print("Posted the best crafts to Discord.")
+    except Exception as err:  # never fail the site update because of Discord
+        print(f"WARNING: Discord post failed: {err}", file=sys.stderr)
+
+
 # ----------------------------------------------------------------------------
 # Main
 # ----------------------------------------------------------------------------
@@ -363,6 +493,7 @@ def main():
         "houses": houses,
         "professions": profession_data,
         "errors": errors,
+        "repo": os.environ.get("GITHUB_REPOSITORY", ""),
         "names": names,
         "prices": prices,
         "vendor": {str(k): v for k, v in vendor.items() if v > 0},
@@ -370,6 +501,11 @@ def main():
     }
     SITE_DIR.mkdir(exist_ok=True)
     save_json(SITE_DIR / "data.json", data)
+    for step in (update_history, maybe_post_discord):
+        try:
+            step(config, data)
+        except Exception as err:  # extras must never stop the site from updating
+            print(f"WARNING: {step.__name__} failed: {err}", file=sys.stderr)
     summary = ", ".join(f"{p['name']} {len(p['recipes'])}" for p in profession_data)
     print(f"Done: {summary} recipes, {len(houses)} auction houses with data. Wrote site/data.json")
 
