@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Hourly crafting profit rankings for WoW: Forever. Pick a profession and an auction house to see the most profitable crafts.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<title>Suln - WoW: Forever crafting profits</title>
+<title>Crafter's Ledger - WoW: Forever profit rankings</title>
 <style>
   :root {
     --bg0: #07090f; --bg1: #0d1018; --panel: #131724; --panel2: #1a2033; --line: #2a3250; --line2: #3a4468;
@@ -35,7 +35,7 @@
   .topbar .wrap { display: flex; align-items: center; gap: 14px; height: 58px; }
   .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
   .brand svg { width: 30px; height: 34px; flex: none; }
-  .brand b { font: 700 1.2rem var(--serif); letter-spacing: 0.18em; color: var(--gold-hi); }
+  .brand b { font: 700 1.05rem var(--serif); letter-spacing: 0.12em; color: var(--gold-hi); }
   .brand small { display: block; font: 0.62rem var(--sans); letter-spacing: 0.22em; color: var(--muted); text-transform: uppercase; margin-top: -2px; }
   nav { margin-left: auto; display: flex; gap: 6px; }
   nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 0.9rem; }
@@ -165,13 +165,13 @@
 
 <header class="topbar">
   <div class="wrap">
-    <a class="brand" href="#top" aria-label="Suln home">
+    <a class="brand" href="#top" aria-label="Crafter's Ledger home">
       <svg viewBox="0 0 30 34" aria-hidden="true">
         <path d="M15 1.5 28 6v10.5c0 8.2-5.4 13.3-13 16-7.6-2.7-13-7.8-13-16V6z" fill="#10131c" stroke="#d6b26a" stroke-width="1.5"/>
         <path d="M8 12h14c0 2.8-1.7 4.4-4.4 4.9V20h3v2.6H9.4V20h3v-3.1C9.7 16.4 8 14.800 8 12z" fill="#f3dc9a"/>
         <path d="M15 4.2l1 2.1 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.300L11.700 6.600l2.300-.3z" fill="#8798ff" opacity=".9"/>
       </svg>
-      <span><b>SULN</b><small>Forever crafting</small></span>
+      <span><b>CRAFTER'S LEDGER</b><small>A tool by Suln</small></span>
     </a>
     <nav aria-label="Main">
       <a href="#top">Rankings</a>
@@ -183,7 +183,7 @@
 <main class="wrap" id="top">
   <section class="hero">
     <h1 id="title">WoW: Forever crafting profits</h1>
-    <p>Which crafts earn the most gold right now? Pick a profession and your auction house, and the best recipes rise to the top. Prices refresh every hour.</p>
+    <p>Your hourly guide to the most profitable crafts in WoW: Forever. Pick a profession and your auction house, and the best recipes rise to the top.</p>
     <div id="updatedBox" class="status"><span class="dot"></span><span id="updated">Loading prices...</span></div>
     <div id="errors" hidden></div>
   </section>
@@ -249,12 +249,13 @@
   <div class="divider" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M9 1l2.600 6.400L18 9l-6.400 2.600L9 18l-2.600-6.400L0 9l6.400-1.600z" fill="currentColor"/></svg></div>
 
   <section id="about" aria-labelledby="aboutTitle">
-    <h2 id="aboutTitle" style="font:700 1.3rem var(--serif);letter-spacing:.12em;color:var(--gold-hi);text-align:center;margin:0 0 16px">About Suln</h2>
+    <h2 id="aboutTitle" style="font:700 1.3rem var(--serif);letter-spacing:.12em;color:var(--gold-hi);text-align:center;margin:0 0 16px">About Crafter's Ledger</h2>
     <div class="about-grid">
       <div class="panel">
         <h2>What this is</h2>
-        <p>Suln ranks crafting recipes in WoW: Forever by how much gold each craft is expected to earn. It reads auction house prices every hour, works out what a craft costs to make and what the result sells for, and lists the best ones first.</p>
+        <p>Crafter's Ledger ranks crafting recipes in WoW: Forever by how much gold each craft is expected to earn. It reads auction house prices every hour, works out what a craft costs to make and what the result sells for, and lists the best ones first.</p>
         <p>Choose a profession and your auction house at the top of the page. Everything else updates on its own.</p>
+        <p>It's a free community tool, built and kept running by Suln.</p>
       </div>
       <div class="panel">
         <h2>How profit is worked out</h2>
@@ -288,9 +289,4 @@
 </main>
 
 <footer>
-  <div class="wrap">Suln is an unofficial fan-made tool. It is not affiliated with or endorsed by Blizzard Entertainment. World of Warcraft and related names are trademarks of their owners.</div>
-</footer>
-
-<script src="app.js"></script>
-</body>
-</html>
+  <div class="wrap">Crafter's Ledger, a free tool by Suln, is an unofficial fan-made tool. It is not affiliated with or endors
