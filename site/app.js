@@ -168,6 +168,20 @@
     return { lines: lines, reagents: reagents, cost: cost, revenue: revenue, profit: revenue - cost, saving: saving, unpriced: unpriced };
   }
 
+  // Which house is mine? entries: [{ itemId, price }] with the lowest price seen in game, in gold.
+  function findHouses(data, entries) {
+    var used = entries.filter(function (e) { return e.itemId && e.price > 0; });
+    if (!used.length) return [];
+    return data.houses.map(function (h) {
+      var score = 0, matched = 0;
+      used.forEach(function (e) {
+        var row = data.prices[String(h.id)] && data.prices[String(h.id)][String(e.itemId)];
+        if (row && row[0] > 0) { score += Math.abs(Math.log(row[0] / e.price)); matched++; } else { score += 3; }
+      });
+      return { house: h, score: score, matched: matched, entries: used.length };
+    }).sort(function (a, b) { return a.score - b.score; });
+  }
+
   function craftVsBuyRows(data, s) {
     var rows = computeRows(data, Object.assign({}, s, { hideIncomplete: true, hideScarce: false, minListings: 0 }));
     var out = [];
@@ -231,7 +245,7 @@
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = { computeRows: computeRows, priceFor: priceFor, formatGold: formatGold, recipesFor: recipesFor,
-      cheapestHouse: cheapestHouse, shoppingTotals: shoppingTotals, craftVsBuyRows: craftVsBuyRows,
+      cheapestHouse: cheapestHouse, findHouses: findHouses, shoppingTotals: shoppingTotals, craftVsBuyRows: craftVsBuyRows,
       consumableRows: consumableRows, consumableTotals: consumableTotals, levelingRows: levelingRows, trendFor: trendFor };
   }
   if (typeof document === "undefined") return;
@@ -298,10 +312,12 @@
     b.addEventListener("click", function (e) { e.stopPropagation(); onClick(e); });
     return b;
   }
+  function houseLabel(h) { return (h.label || h.name || "House " + h.id) + " (ID " + h.id + ")"; }
   function houseName(id) {
     var h = data.houses.filter(function (x) { return String(x.id) === String(id); })[0];
-    return h ? h.name : "house " + id;
+    return h ? houseLabel(h) : "house " + id;
   }
+  var RULESETS = { 1: "PvP", 2: "Normal", 3: "Roleplay", 15: "Roleplay PvP" };
   function pct(v) { return v === null || v === undefined ? "-" : Math.round(v * 100) + "%"; }
 
   // Builds a table; returns { wrap, tbody }. cols: [{label, num, hideSm}]
@@ -746,7 +762,7 @@
     var hash = readHash();
     var houseSelect = $("house");
     data.houses.forEach(function (h) {
-      var option = el("option", h.name + " (ID " + h.id + ")");
+      var option = el("option", houseLabel(h));
       option.value = String(h.id);
       houseSelect.appendChild(option);
     });
@@ -796,6 +812,38 @@
       document.querySelector('[data-tab="' + t + '"]').addEventListener("click", function () { activeTab = t; render(); });
     });
     $("cvbOnly").addEventListener("change", render);
+    $("rulesetLine").textContent = "This page shows " + String(data.region || "us").toUpperCase() + " " + (RULESETS[data.ruleset] || "ruleset " + data.ruleset) +
+      " auction houses (" + data.houses.length + " of them).";
+    var byName = {}, datalist = $("findItems");
+    Object.keys(data.names || {}).forEach(function (id) {
+      var anyPrice = data.houses.some(function (h) { return data.prices[String(h.id)] && data.prices[String(h.id)][id]; });
+      if (!anyPrice) return;
+      byName[data.names[id].toLowerCase()] = id;
+      var o = document.createElement("option");
+      o.value = data.names[id];
+      datalist.appendChild(o);
+    });
+    $("findBtn").addEventListener("click", function () {
+      var entries = [];
+      [1, 2, 3].forEach(function (n) {
+        var id = byName[$("findItem" + n).value.trim().toLowerCase()];
+        var price = parseFloat($("findPrice" + n).value);
+        if (id && price > 0) entries.push({ itemId: id, price: price });
+      });
+      var out = $("findResults");
+      out.textContent = "";
+      if (!entries.length) { out.appendChild(note("Pick at least one item from the list and enter its lowest price in gold.", "warn")); return; }
+      var found = findHouses(data, entries).slice(0, 3);
+      var clear = found.length > 1 && found[0].score < found[1].score * 0.6;
+      out.appendChild(note(clear ? "Best match:" : "Closest matches (not a clear winner - add another item to be sure):", "hint"));
+      found.forEach(function (f) {
+        var row = el("div", null, "hrow");
+        row.appendChild(el("span", houseLabel(f.house), "hname"));
+        row.appendChild(el("span", f.matched + " of " + f.entries + " items matched", "htext"));
+        row.appendChild(button("Use this house", "navbtn", function () { $("house").value = String(f.house.id); render(); }));
+        out.appendChild(row);
+      });
+    });
     if (data.repo) {
       var fb = $("feedbackLink");
       fb.href = "https://github.com/" + data.repo + "/issues/new";
