@@ -376,7 +376,7 @@
 
   function renderHint() {
     var n = professionNames().length;
-    $("profHint").textContent = n + (n === 1 ? " profession" : " professions") + " available. Expand the dropdown to see them all.";
+    $("profHint").textContent = n + (n === 1 ? " profession" : " professions") + " available. Open the box to see them all.";
   }
 
   // Custom profession menu so every profession shows its icon.
@@ -894,6 +894,12 @@
       var o = document.createElement("option");
       o.value = data.names[id];
       datalist.appendChild(o);
+    });
+    [1, 2, 3].forEach(function (n) {
+      var box = $("findItem" + n);
+      box.addEventListener("click", function () {
+        try { if (box.showPicker) box.showPicker(); } catch (e) { /* list opens by typing or the arrow keys instead */ }
+      });
     });
     $("findBtn").addEventListener("click", function () {
       var entries = [];

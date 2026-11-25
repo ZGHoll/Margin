@@ -116,6 +116,10 @@
   .coin input { padding-right: 24px; }
   .cg { color: #e8c35a; } .cs { color: #b8c0d0; } .cc { color: #d9814a; }
   :root[data-theme="light"] .cg { color: #9a7420; } :root[data-theme="light"] .cs { color: #6b7385; } :root[data-theme="light"] .cc { color: #a4561f; }
+  .find-grid input[list]::-webkit-calendar-picker-indicator { display: none !important; }
+  .find-grid input[list] { padding-right: 34px; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M4 7l5 5 5-5' fill='none' stroke='%23d6b26a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 16px; }
   .find-grid input { font: inherit; font-size: 0.92rem; color: var(--text); background: var(--bg1); border: 1px solid var(--line2); border-radius: 8px; padding: 8px 10px; width: 100%; min-height: 38px; }
 
   .notice { margin-top: 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--gold); background: rgba(214, 178, 106, 0.1); }
@@ -348,14 +352,14 @@
         <p id="rulesetLine"></p>
         <ol class="help-steps">
           <li>In game, open the auction house you use and find an item that is listed. Note its <b>lowest price for one item</b>.</li>
-          <li>Type the item name below and its lowest price in gold, silver and copper (leave a box empty if it is zero). Adding two or three items makes the answer more reliable.</li>
+          <li><b>Click the item box</b> to open a list of items (or start typing to search it), pick one, then enter its lowest price in gold, silver and copper. Leave a box empty if it is zero. Adding two or three items makes the answer more reliable.</li>
           <li>Press <b>Find my house</b>, then <b>Use this house</b> on the best match.</li>
         </ol>
         <datalist id="findItems"></datalist>
         <div class="find-grid">
-          <input id="findItem1" list="findItems" placeholder="Item name" aria-label="Item 1 name"><label class="coin"><input id="findG1" type="number" min="0" step="1" placeholder="Gold" aria-label="Item 1 gold"><span class="cg">g</span></label><label class="coin"><input id="findS1" type="number" min="0" max="99" step="1" placeholder="Silver" aria-label="Item 1 silver"><span class="cs">s</span></label><label class="coin"><input id="findC1" type="number" min="0" max="99" step="1" placeholder="Copper" aria-label="Item 1 copper"><span class="cc">c</span></label>
-          <input id="findItem2" list="findItems" placeholder="Item name (optional)" aria-label="Item 2 name"><label class="coin"><input id="findG2" type="number" min="0" step="1" placeholder="Gold" aria-label="Item 2 gold"><span class="cg">g</span></label><label class="coin"><input id="findS2" type="number" min="0" max="99" step="1" placeholder="Silver" aria-label="Item 2 silver"><span class="cs">s</span></label><label class="coin"><input id="findC2" type="number" min="0" max="99" step="1" placeholder="Copper" aria-label="Item 2 copper"><span class="cc">c</span></label>
-          <input id="findItem3" list="findItems" placeholder="Item name (optional)" aria-label="Item 3 name"><label class="coin"><input id="findG3" type="number" min="0" step="1" placeholder="Gold" aria-label="Item 3 gold"><span class="cg">g</span></label><label class="coin"><input id="findS3" type="number" min="0" max="99" step="1" placeholder="Silver" aria-label="Item 3 silver"><span class="cs">s</span></label><label class="coin"><input id="findC3" type="number" min="0" max="99" step="1" placeholder="Copper" aria-label="Item 3 copper"><span class="cc">c</span></label>
+          <input id="findItem1" list="findItems" placeholder="Click for a list, or type to search" aria-label="Item 1 name"><label class="coin"><input id="findG1" type="number" min="0" step="1" placeholder="0" aria-label="Item 1 gold"><span class="cg">g</span></label><label class="coin"><input id="findS1" type="number" min="0" max="99" step="1" placeholder="0" aria-label="Item 1 silver"><span class="cs">s</span></label><label class="coin"><input id="findC1" type="number" min="0" max="99" step="1" placeholder="0" aria-label="Item 1 copper"><span class="cc">c</span></label>
+          <input id="findItem2" list="findItems" placeholder="Optional: click for a list or type" aria-label="Item 2 name"><label class="coin"><input id="findG2" type="number" min="0" step="1" placeholder="0" aria-label="Item 2 gold"><span class="cg">g</span></label><label class="coin"><input id="findS2" type="number" min="0" max="99" step="1" placeholder="0" aria-label="Item 2 silver"><span class="cs">s</span></label><label class="coin"><input id="findC2" type="number" min="0" max="99" step="1" placeholder="0" aria-label="Item 2 copper"><span class="cc">c</span></label>
+          <input id="findItem3" list="findItems" placeholder="Optional: click for a list or type" aria-label="Item 3 name"><label class="coin"><input id="findG3" type="number" min="0" step="1" placeholder="0" aria-label="Item 3 gold"><span class="cg">g</span></label><label class="coin"><input id="findS3" type="number" min="0" max="99" step="1" placeholder="0" aria-label="Item 3 silver"><span class="cs">s</span></label><label class="coin"><input id="findC3" type="number" min="0" max="99" step="1" placeholder="0" aria-label="Item 3 copper"><span class="cc">c</span></label>
         </div>
         <div class="btnrow"><button type="button" class="navbtn" id="findBtn">Find my house</button></div>
         <div id="findResults"></div>
