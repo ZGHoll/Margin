@@ -1,9 +1,35 @@
 {
   "region": "us",
-  "ruleset": 1,
+  "ruleset": 2,
   "professions": [
-    { "name": "Tailoring", "fallback_id": 197 },
-    { "name": "Blacksmithing", "fallback_id": 164 }
+    {
+      "name": "Tailoring",
+      "fallback_id": 197
+    },
+    {
+      "name": "Blacksmithing",
+      "fallback_id": 164
+    },
+    {
+      "name": "Alchemy",
+      "fallback_id": 171
+    },
+    {
+      "name": "Enchanting",
+      "fallback_id": 333
+    },
+    {
+      "name": "Engineering",
+      "fallback_id": 202
+    },
+    {
+      "name": "Leatherworking",
+      "fallback_id": 165
+    },
+    {
+      "name": "Cooking",
+      "fallback_id": 185
+    }
   ],
   "ah_cut": 0.05,
   "default_house": null,
