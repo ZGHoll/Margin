@@ -250,6 +250,7 @@
   /* ---------- about ---------- */
   .about-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
   .about-grid p, .about-grid li { color: var(--body2); font-size: 0.92rem; }
+  .about-grid .panel > h2 { text-align: center; }
   .about-grid p { margin: 0 0 8px; }
   .about-grid ul { margin: 0; padding-left: 18px; }
   .about-grid li { margin-bottom: 5px; }
@@ -257,6 +258,9 @@
   .social { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,.03); color: var(--body2); text-decoration: none; font-size: .92rem; transition: border-color .15s, color .15s, background .15s; }
   .social:hover, .social:focus-visible { border-color: var(--gold-hi); color: var(--gold-hi); background: rgba(255,255,255,.06); }
   .social svg { width: 18px; height: 18px; flex: none; fill: currentColor; }
+  .kofi-card { display: flex; flex-direction: column; align-items: flex-start; }
+  .kofi-card > h2 { align-self: stretch; }
+  .kofi-card > .kofi { align-self: center; }
   .kofi { display: inline-flex; align-items: center; gap: 10px; margin-top: 6px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--gold-hi); background: rgba(255,255,255,.04); color: var(--gold-hi); font-weight: 600; text-decoration: none; transition: background .15s; }
   .kofi:hover, .kofi:focus-visible { background: rgba(255,255,255,.1); }
   .kofi svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
@@ -505,9 +509,9 @@
           <a class="social" href="https://www.instagram.com/zgholl/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7.3A4.7 4.7 0 1 0 12 16.7 4.7 4.7 0 0 0 12 7.3zm0 7.7a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM17.2 5.5a1.1 1.1 0 1 0 0 2.200 1.100 1.100 0 0 0 0-2.200z"/><path d="M16 2H8a6 6 0 0 0-6 6v8a6 6 0 0 0 6 6h8a6 6 0 0 0 6-6V8a6 6 0 0 0-6-6zm4 14a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4z"/></svg><span>Instagram</span><small>@zgholl</small></a>
         </div>
       </div>
-      <div class="panel">
+      <div class="panel kofi-card">
         <h2>Support the tool</h2>
-        <p>Crafter's Ledger is free to use. If it saves you gold and you'd like to say thanks, you can buy me a Ko-fi. It's completely optional.</p>
+        <p>Crafter's Ledger is free to use. If it saves you gold, spend it on me. It won't grow my hair back, but it'll make me feel good.</p>
         <a class="kofi" href="https://ko-fi.com/sulntv" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zm13 1.500h1.500a2.500 2.500 0 0 1 0 5H17v-1.700h1.500a.8.800 0 0 0 0-1.600H17zM6 21h9v1.500H6z"/></svg>Buy me a Ko-fi</a>
       </div>
     </div>
