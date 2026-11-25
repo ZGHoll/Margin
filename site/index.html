@@ -137,14 +137,7 @@
   .prof-menu li:hover, .prof-menu li:focus-visible { background: rgba(214, 178, 106, 0.16); outline: none; }
   .prof-menu li[aria-selected="true"] { background: rgba(214, 178, 106, 0.1); }
   .prof-menu li[aria-selected="true"]::after { content: "\2713"; margin-left: auto; color: var(--gold-hi); }
-  .picker-hint { margin: 10px 0 0; font-size: 0.82rem; }
-  #profHint { display: flex; flex-wrap: wrap; gap: 6px; }
-  #profHint .chip { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 0.82rem; color: var(--muted); background: var(--panel); border: 1px solid var(--line2); border-radius: 999px; padding: 4px 11px 4px 8px; cursor: pointer; }
-  #profHint .chip:hover, #profHint .chip:focus-visible { border-color: var(--gold); color: var(--gold-hi); outline: none; }
-  #profHint .chip.on { border-color: var(--gold); color: var(--gold-hi); background: rgba(214, 178, 106, 0.14); }
-  .chip-ico { display: inline-flex; width: 17px; height: 17px; }
-  .chip-ico svg { width: 100%; height: 100%; }
-  .linkish { font: inherit; font-size: 0.84rem; color: var(--gold-hi); background: none; border: 0; padding: 2px 0; cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+  .linkish { font: inherit; font-size: 0.84rem; color: var(--gold-hi); background: none; border: 0; padding: 0; line-height: inherit; cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
   .linkish:hover, .linkish:focus-visible { text-decoration-style: solid; outline: none; }
   details.finder { margin-top: 14px; border-top: 1px dashed var(--line2); padding-top: 10px; }
   details.finder:not([open]) { display: none; }
@@ -189,9 +182,7 @@
   .select-wrap .caret svg { width: 18px; height: 18px; }
   .house-select select { font-size: 1rem; border-width: 1px; border-color: var(--line2); padding-left: 14px; min-height: 58px; }
   .house-select .caret { background: var(--panel2); color: var(--gold-hi); border: 1px solid var(--line2); border-left: 0; margin: 1px; }
-  .picker-hint { margin: 12px 0 0; color: var(--muted); font-size: 0.88rem; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  .picker-hint .chip { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line2); color: var(--muted); font-size: 0.82rem; }
-  .picker-hint .chip.on { border-color: var(--gold); color: var(--gold-hi); background: rgba(214, 178, 106, 0.12); }
+  .picker-hint { margin: 10px 0 0; color: var(--muted); font-size: 0.84rem; display: block; text-align: center; }
   @keyframes nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
   .select-wrap:not(.touched) .caret svg { animation: nudge 1.6s ease-in-out infinite; }
   @media (prefers-reduced-motion: reduce) { .select-wrap .caret svg { animation: none !important; } html { scroll-behavior: auto; } }
