@@ -1,349 +1,292 @@
-// WoW: Forever profit calculator - page logic.
-// The calculation functions are plain and testable; the page code at the bottom only runs in a browser.
-(function () {
-  "use strict";
-
-  var BASIS = { lowest: 0, p25: 1, median: 2 };
-
-  // Price of one item: hand-set override, then auction price, then vendor price.
-  function priceFor(data, houseId, itemId, basis, allowVendor) {
-    var id = String(itemId);
-    var override = data.overrides[id];
-    if (override > 0) return { price: override, source: "override" };
-    var house = data.prices[String(houseId)];
-    var row = house && house[id];
-    if (row && row[BASIS[basis]] > 0) return { price: row[BASIS[basis]], source: "auction" };
-    if (allowVendor) {
-      var vendor = data.vendor[id];
-      if (vendor > 0) return { price: vendor, source: "vendor" };
-    }
-    return null;
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Hourly crafting profit rankings for WoW: Forever. Pick a profession and an auction house to see the most profitable crafts.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<title>Crafter's Ledger - WoW: Forever profit rankings</title>
+<style>
+  :root {
+    --bg0: #07090f; --bg1: #0d1018; --panel: #131724; --panel2: #1a2033; --line: #2a3250; --line2: #3a4468;
+    --gold: #d6b26a; --gold-hi: #f3dc9a; --gold-lo: #8c6d2e;
+    --text: #ebe8df; --muted: #9ba2b8; --faint: #6d748b;
+    --pos: #72d68f; --neg: #ff7b7b; --warn: #e8b45a; --arcane: #8798ff; --ember: #ff9c52;
+    --serif: "Cinzel", "Trajan Pro", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
-
-  function recipesFor(data, professionName) {
-    if (!data.professions) return data.recipes || [];
-    var found = data.professions.filter(function (p) { return p.name === professionName; })[0] || data.professions[0];
-    return found ? found.recipes : [];
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 70px; }
+  body {
+    margin: 0; color: var(--text); font: 15px/1.5 var(--sans); min-height: 100vh;
+    background:
+      radial-gradient(1200px 520px at 50% -140px, rgba(135, 152, 255, 0.16), transparent 70%),
+      radial-gradient(700px 400px at 90% 8%, rgba(214, 178, 106, 0.09), transparent 70%),
+      radial-gradient(600px 400px at 6% 30%, rgba(255, 156, 82, 0.05), transparent 70%),
+      linear-gradient(180deg, var(--bg1), var(--bg0) 480px);
+    background-attachment: fixed;
   }
+  a { color: var(--gold-hi); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 18px; }
 
-  function computeRows(data, s) {
-    var rows = [];
-    recipesFor(data, s.profession).forEach(function (recipe) {
-      var cost = 0;
-      var missing = [];
-      var reagents = recipe.reagents.map(function (r) {
-        var found = priceFor(data, s.house, r.id, s.buyBasis, true);
-        var name = r.name || data.names[String(r.id)] || "Item " + r.id;
-        if (!found) {
-          missing.push(name);
-          return { name: name, qty: r.qty, price: null, source: "missing" };
-        }
-        cost += found.price * r.qty;
-        return { name: name, qty: r.qty, price: found.price, source: found.source };
-      });
+  /* ---------- top bar ---------- */
+  .topbar { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px); background: rgba(9, 11, 18, 0.82); border-bottom: 1px solid var(--line); }
+  .topbar .wrap { display: flex; align-items: center; gap: 14px; height: 58px; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
+  .brand svg { width: 30px; height: 34px; flex: none; }
+  .brand b { font: 700 1.05rem var(--serif); letter-spacing: 0.12em; color: var(--gold-hi); }
+  .brand small { display: block; font: 0.62rem var(--sans); letter-spacing: 0.22em; color: var(--muted); text-transform: uppercase; margin-top: -2px; }
+  nav { margin-left: auto; display: flex; gap: 6px; }
+  nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 0.9rem; }
+  nav a:hover, nav a:focus-visible { color: var(--gold-hi); background: rgba(214, 178, 106, 0.1); outline: none; }
 
-      var sellFound = recipe.item_id ? priceFor(data, s.house, recipe.item_id, s.sellBasis, false) : null;
-      var listingsRow = recipe.item_id && data.prices[String(s.house)] ? data.prices[String(s.house)][String(recipe.item_id)] : null;
-      var listings = listingsRow ? listingsRow[3] : 0;
+  /* ---------- hero ---------- */
+  .hero { text-align: center; padding: 34px 0 10px; }
+  .hero h1 { font: 700 clamp(1.5rem, 4.2vw, 2.3rem)/1.15 var(--serif); letter-spacing: 0.04em; margin: 0 0 8px;
+    background: linear-gradient(180deg, var(--gold-hi), var(--gold) 60%, var(--gold-lo)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { margin: 0 auto; max-width: 620px; color: var(--muted); }
+  .status { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 0.82rem; color: var(--muted);
+    padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: rgba(19, 23, 36, 0.7); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pos); box-shadow: 0 0 8px var(--pos); }
+  .status.stale { color: var(--warn); border-color: rgba(232, 180, 90, 0.5); }
+  .status.stale .dot { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+  #errors { max-width: 760px; margin: 12px auto 0; padding: 10px 14px; border: 1px solid rgba(232, 180, 90, 0.5); border-radius: 8px; color: var(--warn); background: rgba(232, 180, 90, 0.07); font-size: 0.88rem; }
 
-      var status = "ok";
-      if (!recipe.item_id) status = "no output item";
-      else if (!sellFound) status = "no auction price for the item it makes";
-      else if (missing.length) status = "missing reagent price: " + missing.join(", ");
+  .divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--gold-lo); }
+  .divider::before, .divider::after { content: ""; height: 1px; flex: 1; background: linear-gradient(90deg, transparent, var(--gold-lo)); }
+  .divider::after { background: linear-gradient(270deg, transparent, var(--gold-lo)); }
+  .divider svg { width: 18px; height: 18px; }
 
-      var row = {
-        id: recipe.id,
-        name: recipe.name,
-        tier: recipe.tier || "",
-        qty: recipe.qty || 1,
-        sell: sellFound ? sellFound.price : null,
-        sellSource: sellFound ? sellFound.source : null,
-        listings: listings,
-        cost: status === "ok" ? cost : null,
-        reagents: reagents,
-        status: status,
-        profit: null,
-        roi: null,
-      };
-      if (status === "ok") {
-        row.profit = row.qty * row.sell * (1 - s.cut) - cost;
-        row.roi = cost > 0 ? row.profit / cost : null;
-      }
-      rows.push(row);
-    });
+  /* ---------- panels ---------- */
+  .panel { position: relative; background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .panel::before { content: ""; position: absolute; inset: 0; border-radius: 12px; pointer-events: none; box-shadow: inset 0 1px 0 rgba(243, 220, 154, 0.08); }
+  .panel h2 { font: 700 0.95rem var(--serif); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin: 0 0 12px; }
 
-    var q = (s.search || "").trim().toLowerCase();
-    rows = rows.filter(function (r) {
-      if (q && r.name.toLowerCase().indexOf(q) === -1) return false;
-      if (s.tier && r.tier !== s.tier) return false;
-      if (s.hideIncomplete && r.status !== "ok") return false;
-      if (s.minListings > 0 && (r.status !== "ok" || r.listings < s.minListings)) return false;
-      return true;
-    });
+  /* ---------- profession picker (the big obvious one) ---------- */
+  .picker { border: 1px solid var(--gold-lo); background:
+      linear-gradient(180deg, rgba(214, 178, 106, 0.10), rgba(214, 178, 106, 0.03)), var(--panel);
+    box-shadow: 0 0 0 1px rgba(214, 178, 106, 0.08), 0 10px 40px rgba(0, 0, 0, 0.35), 0 0 36px rgba(214, 178, 106, 0.08); }
+  .picker-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: end; }
+  .picker-label { font: 700 0.78rem var(--serif); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .picker-label .step { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--gold); color: #1a1405; font: 700 0.72rem var(--sans); letter-spacing: 0; }
+  .select-wrap { position: relative; }
+  .select-wrap select { appearance: none; -webkit-appearance: none; width: 100%; font: 600 1.15rem var(--sans); color: var(--text); cursor: pointer;
+    background: var(--bg1); border: 2px solid var(--gold); border-radius: 10px; padding: 14px 56px 14px 58px; min-height: 58px; }
+  .select-wrap select:hover { background: #121726; }
+  .select-wrap select:focus-visible { outline: 3px solid rgba(243, 220, 154, 0.5); outline-offset: 2px; }
+  .select-wrap .icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; color: var(--gold-hi); pointer-events: none; }
+  .select-wrap .icon svg { width: 100%; height: 100%; }
+  .select-wrap .caret { position: absolute; right: 0; top: 0; bottom: 0; width: 50px; display: grid; place-items: center; pointer-events: none;
+    background: linear-gradient(180deg, var(--gold-hi), var(--gold)); border-radius: 0 8px 8px 0; margin: 2px; color: #1a1405; }
+  .select-wrap .caret svg { width: 18px; height: 18px; }
+  .house-select select { font-size: 1rem; border-width: 1px; border-color: var(--line2); padding-left: 14px; min-height: 58px; }
+  .house-select .caret { background: var(--panel2); color: var(--gold-hi); border: 1px solid var(--line2); border-left: 0; margin: 1px; }
+  .picker-hint { margin: 12px 0 0; color: var(--muted); font-size: 0.88rem; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .picker-hint .chip { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line2); color: var(--muted); font-size: 0.82rem; }
+  .picker-hint .chip.on { border-color: var(--gold); color: var(--gold-hi); background: rgba(214, 178, 106, 0.12); }
+  @keyframes nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+  .select-wrap:not(.touched) .caret svg { animation: nudge 1.6s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) { .select-wrap .caret svg { animation: none !important; } html { scroll-behavior: auto; } }
 
-    var key = s.rankBy === "roi" ? "roi" : "profit";
-    rows.sort(function (a, b) {
-      if (a[key] === null && b[key] === null) return a.name.localeCompare(b.name);
-      if (a[key] === null) return 1;
-      if (b[key] === null) return -1;
-      return b[key] - a[key];
-    });
-    return rows;
+  /* ---------- filters ---------- */
+  details.filters { margin-top: 16px; }
+  details.filters summary { cursor: pointer; list-style: none; color: var(--muted); font-size: 0.9rem; padding: 8px 2px; user-select: none; }
+  details.filters summary::-webkit-details-marker { display: none; }
+  details.filters summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; color: var(--gold); transition: transform .15s; }
+  details.filters[open] summary::before { transform: rotate(90deg); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; padding-top: 8px; }
+  label.field { display: flex; flex-direction: column; gap: 4px; font-size: 0.76rem; letter-spacing: 0.04em; color: var(--muted); }
+  .field select, .field input[type=number], .field input[type=search] { font: inherit; font-size: 0.92rem; color: var(--text); background: var(--bg1); border: 1px solid var(--line2); border-radius: 8px; padding: 8px 10px; width: 100%; min-height: 38px; }
+  .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--arcane); outline-offset: 1px; }
+  label.check { flex-direction: row; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--text); align-self: end; min-height: 38px; }
+  label.check input { width: 18px; height: 18px; accent-color: var(--gold); }
+
+  /* ---------- podium ---------- */
+  .podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .medal { position: relative; padding: 16px; border-radius: 12px; background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--line); overflow: hidden; }
+  .medal.r1 { border-color: var(--gold); box-shadow: 0 0 30px rgba(214, 178, 106, 0.14); }
+  .medal .rank { font: 700 0.72rem var(--serif); letter-spacing: 0.2em; color: var(--gold); text-transform: uppercase; }
+  .medal h3 { margin: 6px 0 2px; font: 600 1.05rem var(--sans); }
+  .medal .tier { color: var(--faint); font-size: 0.8rem; }
+  .medal .big { margin-top: 10px; font: 700 1.6rem var(--sans); color: var(--pos); font-variant-numeric: tabular-nums; }
+  .medal .sub { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+  .medal::after { content: ""; position: absolute; right: -28px; top: -28px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, rgba(214, 178, 106, 0.18), transparent 70%); }
+
+  /* ---------- table ---------- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; min-width: 720px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(42, 50, 80, 0.7); vertical-align: middle; }
+  th { font: 700 0.7rem var(--serif); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); background: var(--panel2); position: sticky; top: 0; white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.rk { width: 44px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  tr.main { cursor: pointer; }
+  tr.main:hover { background: rgba(135, 152, 255, 0.07); }
+  tr.main:focus-visible { outline: 2px solid var(--arcane); outline-offset: -2px; }
+  .rname { font-weight: 600; }
+  .rtier { color: var(--faint); font-size: 0.78rem; }
+  .pos { color: var(--pos); font-weight: 600; }
+  .neg { color: var(--neg); font-weight: 600; }
+  .bar { height: 4px; border-radius: 2px; background: rgba(114, 214, 143, 0.18); margin-top: 5px; min-width: 90px; }
+  .bar i { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg, #3fae63, var(--pos)); }
+  .warn { color: var(--warn); font-size: 0.78rem; }
+  tr.detail td { background: rgba(7, 9, 15, 0.5); }
+  .reag { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 0; }
+  .reag span { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 0.82rem; }
+  .reag em { font-style: normal; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; margin-left: 6px; padding: 1px 6px; border-radius: 4px; }
+  .src-auction { background: rgba(135, 152, 255, 0.15); color: var(--arcane); }
+  .src-vendor { background: rgba(255, 156, 82, 0.15); color: var(--ember); }
+  .src-override { background: rgba(214, 178, 106, 0.18); color: var(--gold-hi); }
+  .src-missing { background: rgba(255, 123, 123, 0.15); color: var(--neg); }
+  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  #summary { color: var(--muted); font-size: 0.85rem; margin: 18px 2px 8px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .hint { color: var(--faint); font-size: 0.8rem; margin: 8px 2px 0; }
+
+  /* ---------- about ---------- */
+  .about-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+  .about-grid p, .about-grid li { color: #c9ccd8; font-size: 0.92rem; }
+  .about-grid p { margin: 0 0 8px; }
+  .about-grid ul { margin: 0; padding-left: 18px; }
+  .about-grid li { margin-bottom: 5px; }
+  code.eq { display: block; background: var(--bg1); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; color: var(--gold-hi); font: 0.85rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 8px 0; white-space: normal; }
+  footer { margin: 34px 0 30px; text-align: center; color: var(--faint); font-size: 0.78rem; }
+  footer .wrap { border-top: 1px solid var(--line); padding-top: 18px; }
+
+  @media (max-width: 760px) {
+    .picker-row { grid-template-columns: 1fr; }
+    .podium { grid-template-columns: 1fr; }
+    .brand small { display: none; }
+    .select-wrap select { font-size: 1.05rem; }
+    th, td { padding: 9px 9px; }
   }
+</style>
+</head>
+<body>
 
-  function formatGold(g) {
-    if (g === null || g === undefined) return "-";
-    var negative = g < 0;
-    var copper = Math.round(Math.abs(g) * 10000);
-    var out;
-    if (copper >= 10000 * 100) {
-      out = Math.round(copper / 10000).toLocaleString() + "g";
-    } else if (copper >= 10000) {
-      out = (copper / 10000).toFixed(2) + "g";
-    } else {
-      var silver = Math.floor(copper / 100);
-      var rest = copper % 100;
-      var parts = [];
-      if (silver) parts.push(silver + "s");
-      if (rest || !silver) parts.push(rest + "c");
-      out = parts.join(" ");
-    }
-    return (negative ? "-" : "") + out;
-  }
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Crafter's Ledger home">
+      <svg viewBox="0 0 30 34" aria-hidden="true">
+        <path d="M15 1.5 28 6v10.5c0 8.2-5.4 13.3-13 16-7.6-2.7-13-7.8-13-16V6z" fill="#10131c" stroke="#d6b26a" stroke-width="1.5"/>
+        <path d="M8 12h14c0 2.8-1.7 4.4-4.4 4.9V20h3v2.6H9.4V20h3v-3.1C9.7 16.4 8 14.800 8 12z" fill="#f3dc9a"/>
+        <path d="M15 4.2l1 2.1 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.300L11.700 6.600l2.300-.3z" fill="#8798ff" opacity=".9"/>
+      </svg>
+      <span><b>CRAFTER'S LEDGER</b><small>A tool by Suln</small></span>
+    </a>
+    <nav aria-label="Main">
+      <a href="#top">Rankings</a>
+      <a href="#about">About</a>
+    </nav>
+  </div>
+</header>
 
-  if (typeof module !== "undefined" && module.exports) {
-    module.exports = { computeRows: computeRows, priceFor: priceFor, formatGold: formatGold, recipesFor: recipesFor };
-  }
-  if (typeof document === "undefined") return;
+<main class="wrap" id="top">
+  <section class="hero">
+    <h1 id="title">WoW: Forever crafting profits</h1>
+    <p>Your hourly guide to the most profitable crafts in WoW: Forever. Pick a profession and your auction house, and the best recipes rise to the top.</p>
+    <div id="updatedBox" class="status"><span class="dot"></span><span id="updated">Loading prices...</span></div>
+    <div id="errors" hidden></div>
+  </section>
 
-  // ------------------------------------------------------------------ page
-  var $ = function (id) { return document.getElementById(id); };
-  var data = null;
+  <div class="divider" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M9 1l2.600 6.400L18 9l-6.400 2.600L9 18l-2.600-6.400L0 9l6.400-1.600z" fill="currentColor"/></svg></div>
 
-  var ICONS = {
-    Tailoring: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 26 24 6"/><ellipse cx="25" cy="5" rx="1.6" ry="2.6" transform="rotate(40 25 5)"/><path d="M9 10c6-4 9 4 14 0M7 16c6-4 9 4 14 0M11 22c4-2 7 2 11 0" opacity=".8"/></svg>',
-    Blacksmithing: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h17c0 4-3 6-7 6v3h5v4H9v-4h5v-3C9 15 6 13 4 9z"/><path d="M21 9h6c-1 3-3 4-6 4"/><path d="M8 27h16"/></svg>',
-    _: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l3 8 8 1-6 6 2 9-7-4-7 4 2-9-6-6 8-1z"/></svg>'
-  };
-  function iconFor(name) { return ICONS[name] || ICONS._; }
+  <section class="panel picker" aria-label="Choose profession and auction house">
+    <div class="picker-row">
+      <div>
+        <div class="picker-label"><span class="step">1</span> Choose a profession</div>
+        <div class="select-wrap" id="profWrap">
+          <span class="icon" id="profIcon" aria-hidden="true"></span>
+          <select id="profession" aria-label="Profession"></select>
+          <span class="caret" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M3 6l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.800" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </div>
+      <div>
+        <div class="picker-label"><span class="step">2</span> Choose your auction house</div>
+        <div class="select-wrap house-select">
+          <select id="house" aria-label="Auction house"></select>
+          <span class="caret" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M3 6l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.800" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </div>
+    </div>
+    <p class="picker-hint" id="profHint"></p>
 
-  function loadSettings() {
-    try { return JSON.parse(localStorage.getItem("forever-settings") || "{}"); } catch (e) { return {}; }
-  }
-  function saveSettings(s) {
-    try { localStorage.setItem("forever-settings", JSON.stringify(s)); } catch (e) { /* private mode: ignore */ }
-  }
+    <details class="filters">
+      <summary>Filters and price settings</summary>
+      <div class="grid">
+        <label class="field">Rank by
+          <select id="rankBy"><option value="profit">Profit per craft</option><option value="roi">Return on cost (%)</option></select>
+        </label>
+        <label class="field">Buy reagents at
+          <select id="buyBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
+        </label>
+        <label class="field">Sell crafts at
+          <select id="sellBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
+        </label>
+        <label class="field">Auction house cut (%) <input id="cut" type="number" min="0" max="50" step="0.5"></label>
+        <label class="field">Min. listings of the item <input id="minListings" type="number" min="0" step="1"></label>
+        <label class="field">Skill tier <select id="tier"><option value="">All</option></select></label>
+        <label class="field">Search recipes <input id="search" type="search" placeholder="Recipe name"></label>
+        <label class="field check"><input id="hideIncomplete" type="checkbox" checked> Hide recipes missing a price</label>
+      </div>
+    </details>
+  </section>
 
-  function currentSettings() {
-    return {
-      profession: $("profession").value,
-      house: $("house").value,
-      buyBasis: $("buyBasis").value,
-      sellBasis: $("sellBasis").value,
-      cut: Math.max(0, Math.min(0.5, parseFloat($("cut").value) / 100 || 0)),
-      rankBy: $("rankBy").value,
-      minListings: parseInt($("minListings").value, 10) || 0,
-      search: $("search").value,
-      tier: $("tier").value,
-      hideIncomplete: $("hideIncomplete").checked,
-    };
-  }
+  <section id="podiumSection" style="margin-top:22px" aria-label="Top crafts">
+    <div class="podium" id="podium"></div>
+  </section>
 
-  function el(tag, text, className) {
-    var node = document.createElement(tag);
-    if (text !== undefined && text !== null) node.textContent = text;
-    if (className) node.className = className;
-    return node;
-  }
+  <div id="summary"></div>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th class="num">#</th><th>Recipe</th><th class="num">Profit</th><th class="num">Return</th><th class="num">Sells for</th><th class="num">Listed</th><th class="num">Reagent cost</th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <p class="hint">Click a recipe to see its reagents and where each price came from. Estimates only: deposits are not included.</p>
 
-  function fillTiers(professionName, keep) {
-    var tierSelect = $("tier");
-    tierSelect.textContent = "";
-    var all = el("option", "All");
-    all.value = "";
-    tierSelect.appendChild(all);
-    var tiers = [];
-    recipesFor(data, professionName).forEach(function (r) { if (r.tier && tiers.indexOf(r.tier) === -1) tiers.push(r.tier); });
-    tiers.forEach(function (t) { var o = el("option", t); o.value = t; tierSelect.appendChild(o); });
-    tierSelect.value = keep && tiers.indexOf(keep) !== -1 ? keep : "";
-  }
+  <div class="divider" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M9 1l2.600 6.400L18 9l-6.400 2.600L9 18l-2.600-6.400L0 9l6.400-1.600z" fill="currentColor"/></svg></div>
 
-  function professionNames() {
-    return (data.professions || [{ name: data.profession || "Tailoring" }]).map(function (p) { return p.name; });
-  }
+  <section id="about" aria-labelledby="aboutTitle">
+    <h2 id="aboutTitle" style="font:700 1.3rem var(--serif);letter-spacing:.12em;color:var(--gold-hi);text-align:center;margin:0 0 16px">About Crafter's Ledger</h2>
+    <div class="about-grid">
+      <div class="panel">
+        <h2>What this is</h2>
+        <p>Crafter's Ledger ranks crafting recipes in WoW: Forever by how much gold each craft is expected to earn. It reads auction house prices every hour, works out what a craft costs to make and what the result sells for, and lists the best ones first.</p>
+        <p>Choose a profession and your auction house at the top of the page. Everything else updates on its own.</p>
+        <p>It's a free community tool, built and kept running by Suln.</p>
+      </div>
+      <div class="panel">
+        <h2>How profit is worked out</h2>
+        <code class="eq">profit = items made x sell price x (1 - auction house cut) - reagent cost</code>
+        <ul>
+          <li><b>Reagent prices</b> come from the auction house. If an item is not listed there, its vendor price is used.</li>
+          <li><b>Sell and buy prices</b> use the 25th percentile by default: the price at which the cheapest quarter of items for sale are available. It is steadier than the single lowest listing, which can be a one-off undercut. You can switch to Lowest or Median.</li>
+          <li><b>Return</b> is profit divided by reagent cost, so it shows how much you get back per gold spent.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h2>Using it well</h2>
+        <ul>
+          <li>Pick the right auction house. Prices differ between houses.</li>
+          <li>Set a minimum number of listings to avoid items that rarely sell.</li>
+          <li>Click any recipe to see each reagent and whether its price is from the auction house, a vendor or a hand-set value.</li>
+          <li>Untick "Hide recipes missing a price" to see recipes the data could not fully price.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h2>Good to know</h2>
+        <ul>
+          <li>Prices are hourly snapshots and can lag what you see in game.</li>
+          <li>Deposits are not included, and the auction house cut is an assumption you can change.</li>
+          <li>Blizzard has not published official documentation for WoW: Forever's data, so some items or recipes may be missing or change without notice.</li>
+          <li>Treat every number as an estimate and check the in-game auction house before you commit a lot of gold.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
 
-  function renderHint(current) {
-    var hint = $("profHint");
-    hint.textContent = "";
-    var names = professionNames();
-    hint.appendChild(el("span", names.length + (names.length === 1 ? " profession available:" : " professions available:")));
-    names.forEach(function (n) {
-      var chip = el("button", n, "chip" + (n === current ? " on" : ""));
-      chip.type = "button";
-      chip.addEventListener("click", function () {
-        $("profession").value = n;
-        onProfessionChange();
-      });
-      hint.appendChild(chip);
-    });
-    hint.appendChild(el("span", "(use the box above or tap a name)"));
-  }
-
-  function podiumCard(r, place) {
-    var card = el("div", null, "medal r" + place);
-    card.appendChild(el("div", "#" + place + " best craft", "rank"));
-    card.appendChild(el("h3", r.name));
-    card.appendChild(el("div", r.tier || " ", "tier"));
-    card.appendChild(el("div", formatGold(r.profit), "big"));
-    card.appendChild(el("div", "profit per craft" + (r.roi === null ? "" : " - " + Math.round(r.roi * 100) + "% return"), "sub"));
-    return card;
-  }
-
-  function render() {
-    var s = currentSettings();
-    document.title = "Crafter's Ledger - " + s.profession + " profits in WoW: Forever";
-    $("title").textContent = s.profession + " profits in WoW: Forever";
-    $("profIcon").innerHTML = iconFor(s.profession);
-    renderHint(s.profession);
-    saveSettings(s);
-    var rows = computeRows(data, s);
-    var body = $("rows");
-    body.textContent = "";
-
-    var incomplete = computeRows(data, Object.assign({}, s, { hideIncomplete: false, search: "", tier: "", minListings: 0 }))
-      .filter(function (r) { return r.status !== "ok"; }).length;
-    $("summary").textContent = rows.length + " recipes shown" +
-      (incomplete ? " - " + incomplete + " recipes in total are missing a price" : "");
-
-    var podium = $("podium");
-    podium.textContent = "";
-    var best = rows.filter(function (r) { return r.profit !== null; }).slice(0, 3);
-    best.forEach(function (r, i) { podium.appendChild(podiumCard(r, i + 1)); });
-    $("podiumSection").hidden = best.length === 0;
-
-    var maxProfit = 0;
-    rows.forEach(function (r) { if (r.profit !== null && r.profit > maxProfit) maxProfit = r.profit; });
-
-    if (!rows.length) {
-      var emptyRow = el("tr");
-      var emptyCell = el("td", "No recipes match. Try clearing the search, or untick \"Hide recipes missing a price\" in the filters.", "empty");
-      emptyCell.colSpan = 7;
-      emptyRow.appendChild(emptyCell);
-      body.appendChild(emptyRow);
-    }
-
-    rows.forEach(function (r, index) {
-      var tr = el("tr", null, "main");
-      tr.tabIndex = 0;
-      tr.setAttribute("aria-expanded", "false");
-      tr.appendChild(el("td", String(index + 1), "rk"));
-
-      var nameCell = el("td");
-      nameCell.appendChild(el("div", r.name, "rname"));
-      if (r.tier) nameCell.appendChild(el("div", r.tier, "rtier"));
-      if (r.status !== "ok") nameCell.appendChild(el("div", r.status, "warn"));
-      tr.appendChild(nameCell);
-
-      var profit = el("td", null, "num");
-      profit.appendChild(el("span", formatGold(r.profit), r.profit !== null ? (r.profit >= 0 ? "pos" : "neg") : ""));
-      if (r.profit !== null && r.profit > 0 && maxProfit > 0) {
-        var bar = el("div", null, "bar");
-        var fill = el("i");
-        fill.style.width = Math.max(2, Math.round(r.profit / maxProfit * 100)) + "%";
-        bar.appendChild(fill);
-        profit.appendChild(bar);
-      }
-      tr.appendChild(profit);
-      tr.appendChild(el("td", r.roi === null ? "-" : Math.round(r.roi * 100) + "%", "num"));
-      tr.appendChild(el("td", formatGold(r.sell), "num"));
-      tr.appendChild(el("td", String(r.listings), "num"));
-      tr.appendChild(el("td", formatGold(r.cost), "num"));
-
-      var detail = el("tr", null, "detail");
-      detail.hidden = true;
-      var dcell = el("td");
-      dcell.colSpan = 7;
-      var wrap = el("div", null, "reag");
-      r.reagents.forEach(function (g) {
-        var chip = el("span", g.qty + " x " + g.name + (g.price === null ? "" : "  " + formatGold(g.price) + " each = " + formatGold(g.price * g.qty)));
-        chip.appendChild(el("em", g.source === "missing" ? "no price" : g.source, "src-" + g.source));
-        wrap.appendChild(chip);
-      });
-      if (r.qty > 1) wrap.appendChild(el("span", "Makes " + r.qty + " per craft"));
-      dcell.appendChild(wrap);
-      detail.appendChild(dcell);
-
-      function toggle() {
-        detail.hidden = !detail.hidden;
-        tr.setAttribute("aria-expanded", String(!detail.hidden));
-      }
-      tr.addEventListener("click", toggle);
-      tr.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
-      });
-      body.appendChild(tr);
-      body.appendChild(detail);
-    });
-  }
-
-  function onProfessionChange() {
-    $("profWrap").className = "select-wrap touched";
-    fillTiers($("profession").value, "");
-    render();
-  }
-
-  function init() {
-    var saved = loadSettings();
-    var houseSelect = $("house");
-    data.houses.forEach(function (h) {
-      var option = el("option", h.name + " (ID " + h.id + ")");
-      option.value = String(h.id);
-      houseSelect.appendChild(option);
-    });
-    var wanted = saved.house && data.prices[saved.house] ? saved.house : String(data.default_house);
-    houseSelect.value = wanted;
-
-    var professionSelect = $("profession");
-    var names = professionNames();
-    names.forEach(function (n) {
-      var option = el("option", n);
-      option.value = n;
-      professionSelect.appendChild(option);
-    });
-    professionSelect.value = saved.profession && names.indexOf(saved.profession) !== -1 ? saved.profession : names[0];
-    fillTiers(professionSelect.value, saved.tier);
-
-    $("buyBasis").value = saved.buyBasis || "p25";
-    $("sellBasis").value = saved.sellBasis || "p25";
-    $("cut").value = saved.cut !== undefined ? Math.round(saved.cut * 1000) / 10 : data.ah_cut * 100;
-    $("rankBy").value = saved.rankBy || "profit";
-    $("minListings").value = saved.minListings || 0;
-    $("hideIncomplete").checked = saved.hideIncomplete !== false;
-
-    ["house", "buyBasis", "sellBasis", "cut", "rankBy", "minListings", "tier", "hideIncomplete"].forEach(function (id) {
-      $(id).addEventListener("change", render);
-    });
-    professionSelect.addEventListener("change", onProfessionChange);
-    $("search").addEventListener("input", render);
-
-    var updated = new Date(data.updated);
-    var ageHours = (Date.now() - updated.getTime()) / 3600000;
-    $("updated").textContent = "Prices updated " + updated.toLocaleString() +
-      (ageHours > 4 ? " - this data is " + Math.round(ageHours) + " hours old, so the hourly update may have stopped." : "");
-    if (ageHours > 4) $("updatedBox").className = "status stale";
-    if (data.errors && data.errors.length) {
-      var note = $("errors");
-      note.textContent = "Some data could not be loaded and is missing from this page: " + data.errors.join(" | ");
-      note.hidden = false;
-    }
-    render();
-  }
-
-  fetch("data.json?v=" + Date.now())
-    .then(function (response) { if (!response.ok) throw new Error("HTTP " + response.status); return response.json(); })
-    .then(function (json) { data = json; init(); })
-    .catch(function (err) {
-      $("updated").textContent = "Could not load the price data (" + err.message + "). If this page was just set up, wait for the first update to finish.";
-      $("updatedBox").className = "status stale";
-    });
-})();
+<footer>
+  <div class="wrap">Crafter's Ledger, a free tool by Suln, is an unofficial fan-made tool. It is not affiliated with or endors
