@@ -65,6 +65,8 @@
   .status.stale .dot { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
   #errors { max-width: 760px; margin: 12px auto 0; padding: 10px 14px; border: 1px solid rgba(232, 180, 90, 0.5); border-radius: 8px; color: var(--warn); background: rgba(232, 180, 90, 0.07); font-size: 0.88rem; }
 
+  .aboutlink { margin: 12px 0 0; font-size: 0.88rem; }
+  .aboutlink a { text-decoration: none; border-bottom: 1px dotted var(--gold-lo); }
   .divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--gold-lo); }
   .divider::before, .divider::after { content: ""; height: 1px; flex: 1; background: linear-gradient(90deg, transparent, var(--gold-lo)); }
   .divider::after { background: linear-gradient(270deg, transparent, var(--gold-lo)); }
@@ -173,7 +175,10 @@
     table { min-width: 0; }
     .hide-sm { display: none; }
     .wrap { padding: 0 14px; }
-    nav a { display: none; }
+    nav a { padding: 6px 8px; font-size: 0.82rem; }
+    nav { gap: 4px; }
+    #shareBtn { display: none; }
+    .brand small { display: none; }
     .navbtn { padding: 5px 9px; font-size: 0.76rem; }
     .brand b { font-size: 0.9rem; letter-spacing: 0.08em; }
     .panel { padding: 14px; }
@@ -205,6 +210,7 @@
     <h1 id="title">WoW: Forever crafting profits</h1>
     <p>Your hourly guide to the most profitable crafts in WoW: Forever. Pick a profession and your auction house, and the best recipes rise to the top.</p>
     <div id="updatedBox" class="status"><span class="dot"></span><span id="updated">Loading prices...</span></div>
+    <p class="aboutlink"><a href="#about">How it works - About this tool &darr;</a></p>
     <div id="errors" hidden></div>
   </section>
 
@@ -309,6 +315,7 @@
         </ul>
       </div>
     </div>
+    <p style="text-align:center;margin-top:16px"><a href="#top">Back to the rankings &uarr;</a></p>
   </section>
 </main>
 
