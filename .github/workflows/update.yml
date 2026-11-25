@@ -2,7 +2,7 @@ name: Update prices and publish site
 
 on:
   schedule:
-    - cron: "7, 37 * * * *"      # every hour, at 17 minutes past
+    - cron: 7, 37 * * * *      # every hour, at 17 minutes past
   workflow_dispatch:           # lets you run it by hand from the Actions tab
 
 permissions:
