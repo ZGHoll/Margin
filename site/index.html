@@ -122,6 +122,44 @@
   .notice .btnrow { margin-top: 6px; flex-wrap: wrap; }
   .navbtn.primary { background: linear-gradient(180deg, var(--gold-hi), var(--gold)); color: #1a1405; border-color: var(--gold); font-weight: 700; }
   :root[data-theme="light"] .navbtn.primary { color: #fffdf6; background: var(--gold); }
+
+  /* ---------- cleaner picker ---------- */
+  .sr-select { position: absolute !important; opacity: 0; width: 1px !important; height: 1px !important; pointer-events: none; left: 0; top: 0; }
+  .prof-btn { appearance: none; width: 100%; text-align: left; font: 600 1.15rem var(--sans); color: var(--text); cursor: pointer;
+    background: var(--bg1); border: 2px solid var(--gold); border-radius: 10px; padding: 14px 56px 14px 58px; min-height: 58px; }
+  .prof-btn:hover { background: var(--panel2); }
+  .prof-btn:focus-visible { outline: 3px solid rgba(243, 220, 154, 0.5); outline-offset: 2px; }
+  .prof-menu { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none;
+    background: var(--panel2); border: 1px solid var(--gold); border-radius: 12px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5); max-height: 70vh; overflow-y: auto; }
+  .prof-menu[hidden] { display: none; }
+  .prof-menu li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  .prof-menu li svg { width: 26px; height: 26px; color: var(--gold-hi); flex: none; }
+  .prof-menu li:hover, .prof-menu li:focus-visible { background: rgba(214, 178, 106, 0.16); outline: none; }
+  .prof-menu li[aria-selected="true"] { background: rgba(214, 178, 106, 0.1); }
+  .prof-menu li[aria-selected="true"]::after { content: "\2713"; margin-left: auto; color: var(--gold-hi); }
+  .picker-hint { margin: 10px 0 0; font-size: 0.82rem; }
+  #profHint { display: flex; flex-wrap: wrap; gap: 6px; }
+  #profHint .chip { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 0.82rem; color: var(--muted); background: var(--panel); border: 1px solid var(--line2); border-radius: 999px; padding: 4px 11px 4px 8px; cursor: pointer; }
+  #profHint .chip:hover, #profHint .chip:focus-visible { border-color: var(--gold); color: var(--gold-hi); outline: none; }
+  #profHint .chip.on { border-color: var(--gold); color: var(--gold-hi); background: rgba(214, 178, 106, 0.14); }
+  .chip-ico { display: inline-flex; width: 17px; height: 17px; }
+  .chip-ico svg { width: 100%; height: 100%; }
+  .linkish { font: inherit; font-size: 0.84rem; color: var(--gold-hi); background: none; border: 0; padding: 2px 0; cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+  .linkish:hover, .linkish:focus-visible { text-decoration-style: solid; outline: none; }
+  details.finder { margin-top: 14px; border-top: 1px dashed var(--line2); padding-top: 10px; }
+  details.finder:not([open]) { display: none; }
+  .toolbar { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: end; margin-bottom: 16px; }
+  .toolbar[hidden] { display: none; }
+  .toolbar .field[hidden] { display: none; }
+  details.adv { grid-column: 1 / -1; }
+  details.adv summary { display: inline-block; list-style: none; cursor: pointer; user-select: none; font-size: 0.86rem; color: var(--gold-hi); padding: 6px 12px; border: 1px solid var(--line2); border-radius: 999px; }
+  details.adv summary::-webkit-details-marker { display: none; }
+  details.adv summary::before { content: "\25B8"; margin-right: 8px; color: var(--gold); display: inline-block; transition: transform .15s; }
+  details.adv[open] summary::before { transform: rotate(90deg); }
+  details.adv summary:hover, details.adv summary:focus-visible { border-color: var(--gold); outline: none; }
+  .adv-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+  .adv-body fieldset { margin: 0; padding: 12px 14px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px 12px; }
+  .adv-body legend { padding: 0 8px; font: 700 0.72rem var(--serif); letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
   .divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--gold-lo); }
   .divider::before, .divider::after { content: ""; height: 1px; flex: 1; background: linear-gradient(90deg, transparent, var(--gold-lo)); }
   .divider::after { background: linear-gradient(270deg, transparent, var(--gold-lo)); }
@@ -136,7 +174,7 @@
   .picker { border: 1px solid var(--gold-lo); background:
       linear-gradient(180deg, rgba(214, 178, 106, 0.10), rgba(214, 178, 106, 0.03)), var(--panel);
     box-shadow: 0 0 0 1px rgba(214, 178, 106, 0.08), 0 10px 40px rgba(0, 0, 0, 0.35), 0 0 36px rgba(214, 178, 106, 0.08); }
-  .picker-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: end; }
+  .picker-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
   .picker-label { font: 700 0.78rem var(--serif); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
   .picker-label .step { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--gold); color: #1a1405; font: 700 0.72rem var(--sans); letter-spacing: 0; }
   .select-wrap { position: relative; }
@@ -223,9 +261,11 @@
 
   @media (max-width: 760px) {
     .picker-row { grid-template-columns: 1fr; }
+    .toolbar { grid-template-columns: 1fr 1fr; }
+    .toolbar .grow { grid-column: 1 / -1; }
     .podium { grid-template-columns: 1fr; }
     .brand small { display: none; }
-    .select-wrap select { font-size: 1.05rem; }
+    .select-wrap select, .prof-btn { font-size: 1.05rem; }
     th, td { padding: 9px 8px; }
     .icon-btn { width: 32px; height: 32px; margin-left: 2px; }
     td.acts { width: 72px; }
@@ -277,18 +317,22 @@
     <div class="picker-row">
       <div>
         <div class="picker-label"><span class="step">1</span> Choose a profession</div>
-        <div class="select-wrap" id="profWrap">
+        <div class="select-wrap prof" id="profWrap">
           <span class="icon" id="profIcon" aria-hidden="true"></span>
-          <select id="profession" aria-label="Profession"></select>
-          <span class="caret" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M3 6l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.800" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <button type="button" id="profBtn" class="prof-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="profMenu"><span id="profBtnLabel">Profession</span></button>
+          <span class="caret" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M3 6l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <ul id="profMenu" class="prof-menu" role="listbox" aria-label="Professions" hidden></ul>
+          <select id="profession" class="sr-select" tabindex="-1" aria-hidden="true"></select>
         </div>
+        <p class="picker-hint" id="profHint"></p>
       </div>
       <div>
         <div class="picker-label"><span class="step">2</span> Choose your auction house</div>
         <div class="select-wrap house-select">
           <select id="house" aria-label="Auction house"></select>
-          <span class="caret" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M3 6l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.800" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="caret" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M3 6l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         </div>
+        <p class="picker-hint"><button type="button" class="linkish" id="houseLinkBtn">Not sure which house is yours? Find it</button></p>
       </div>
     </div>
     <div class="notice" id="houseNotice" hidden>
@@ -300,10 +344,8 @@
         <button type="button" class="navbtn" id="laterHouse">Maybe later</button>
       </div>
     </div>
-    <p class="picker-hint" id="profHint"></p>
-
-    <details class="filters" id="houseHelp">
-      <summary class="needhelp">Not sure which auction house to pick? Click here</summary>
+    <details class="finder" id="houseHelp">
+      <summary class="sr">Auction house finder</summary>
       <div class="help-body">
         <p>Each ID in the list is a separate auction house with its own prices. The number alone does not say which one you play on, so use the finder below. It compares prices you can see in game with the prices on this page and points to the closest house.</p>
         <p id="rulesetLine"></p>
@@ -321,31 +363,7 @@
         <div class="btnrow"><button type="button" class="navbtn" id="findBtn">Find my house</button></div>
         <div id="findResults"></div>
         <p class="hint">Faction houses take a 5% cut and the neutral ones (Gadgetzan, Booty Bay, Everlook) take 15%. Prices move, so a match is a best guess, not a certainty.</p>
-      </div>
-    </details>
-
-    <details class="filters">
-      <summary>Filters and price settings</summary>
-      <div class="grid">
-        <label class="field">Rank by
-          <select id="rankBy"><option value="profit">Profit per craft</option><option value="roi">Return on cost (%)</option><option value="depth">Most listed (market depth)</option></select>
-        </label>
-        <label class="field">Buy reagents at
-          <select id="buyBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
-        </label>
-        <label class="field">Sell crafts at
-          <select id="sellBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
-        </label>
-        <label class="field">Auction house type
-          <select id="ahType"><option value="faction">Faction house (5% cut)</option><option value="neutral">Neutral house (15% cut)</option><option value="custom">Custom cut</option></select>
-        </label>
-        <label class="field">Auction house cut (%) <input id="cut" type="number" min="0" max="50" step="0.5"></label>
-        <label class="field">Min. listings of the item <input id="minListings" type="number" min="0" step="1"></label>
-        <label class="field">Skill tier <select id="tier"><option value="">All</option></select></label>
-        <label class="field">Search recipes <input id="search" type="search" placeholder="Recipe name"></label>
-        <label class="field check"><input id="hideIncomplete" type="checkbox" checked> Hide recipes missing a price</label>
-        <label class="field check"><input id="hideScarce" type="checkbox"> Hide crafts needing a scarce reagent</label>
-        <label class="field check"><input id="favOnly" type="checkbox"> Show favorites only</label>
+        <div class="btnrow"><button type="button" class="navbtn" id="closeFinder">Close the finder</button></div>
       </div>
     </details>
   </section>
@@ -356,6 +374,39 @@
     <button type="button" role="tab" class="tab" data-tab="cvb">Craft vs buy</button>
     <button type="button" role="tab" class="tab" data-tab="cons">Raid consumables</button>
     <button type="button" role="tab" class="tab" data-tab="lvl">Leveling helper</button>
+  </div>
+
+  <div class="toolbar" id="toolbar">
+    <label class="field grow">Search recipes <input id="search" type="search" placeholder="Recipe name"></label>
+    <label class="field">Skill tier <select id="tier"><option value="">All</option></select></label>
+    <label class="field" id="rankField">Rank by
+      <select id="rankBy"><option value="profit">Profit per craft</option><option value="roi">Return on cost (%)</option><option value="depth">Most listed (market depth)</option></select>
+    </label>
+    <details class="adv" id="adv">
+      <summary>Price settings &amp; filters</summary>
+      <div class="adv-body">
+        <fieldset>
+          <legend>Prices</legend>
+          <label class="field">Buy reagents at
+            <select id="buyBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
+          </label>
+          <label class="field">Sell crafts at
+            <select id="sellBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
+          </label>
+          <label class="field">Auction house type
+            <select id="ahType"><option value="faction">Faction house (5% cut)</option><option value="neutral">Neutral house (15% cut)</option><option value="custom">Custom cut</option></select>
+          </label>
+          <label class="field">Auction house cut (%) <input id="cut" type="number" min="0" max="50" step="0.5"></label>
+        </fieldset>
+        <fieldset>
+          <legend>Show only</legend>
+          <label class="field">Min. listings of the item <input id="minListings" type="number" min="0" step="1"></label>
+          <label class="field check"><input id="hideIncomplete" type="checkbox" checked> Hide recipes missing a price</label>
+          <label class="field check"><input id="hideScarce" type="checkbox"> Hide crafts needing a scarce reagent</label>
+          <label class="field check"><input id="favOnly" type="checkbox"> Show favorites only</label>
+        </fieldset>
+      </div>
+    </details>
   </div>
 
   <div id="tab-rank" class="tabpanel">

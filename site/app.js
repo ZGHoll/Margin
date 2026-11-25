@@ -374,18 +374,62 @@
     return (data.professions || [{ name: data.profession || "Tailoring" }]).map(function (p) { return p.name; });
   }
 
-  function renderHint(current) {
-    var hint = $("profHint");
-    hint.textContent = "";
-    var names = professionNames();
-    hint.appendChild(el("span", names.length + (names.length === 1 ? " profession available:" : " professions available:")));
-    names.forEach(function (n) {
-      var chip = el("button", n, "chip" + (n === current ? " on" : ""));
-      chip.type = "button";
-      chip.addEventListener("click", function () { $("profession").value = n; onProfessionChange(); });
-      hint.appendChild(chip);
+  function renderHint() {
+    var n = professionNames().length;
+    $("profHint").textContent = n + (n === 1 ? " profession" : " professions") + " available. Open the box to see them all.";
+  }
+
+  // Custom profession menu so every profession shows its icon.
+  function buildProfMenu() {
+    var menu = $("profMenu"), btn = $("profBtn");
+    menu.textContent = "";
+    professionNames().forEach(function (n) {
+      var li = el("li");
+      li.setAttribute("role", "option");
+      li.tabIndex = -1;
+      li.dataset.value = n;
+      var icon = el("span");
+      icon.innerHTML = iconFor(n);
+      icon.style.display = "inline-flex";
+      li.appendChild(icon);
+      li.appendChild(el("span", n));
+      li.addEventListener("click", function () { choose(n); });
+      menu.appendChild(li);
     });
-    hint.appendChild(el("span", "(use the box above or tap a name)"));
+    function items() { return Array.prototype.slice.call(menu.children); }
+    function open() {
+      menu.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+      var cur = items().filter(function (li) { return li.dataset.value === $("profession").value; })[0] || menu.firstChild;
+      cur.focus();
+    }
+    function close(refocus) {
+      menu.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+      if (refocus) btn.focus();
+    }
+    function choose(n) {
+      $("profession").value = n;
+      close(true);
+      onProfessionChange();
+    }
+    btn.addEventListener("click", function () { if (menu.hidden) open(); else close(false); });
+    btn.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); open(); }
+    });
+    menu.addEventListener("keydown", function (e) {
+      var list = items(), i = list.indexOf(document.activeElement);
+      if (e.key === "ArrowDown") { e.preventDefault(); list[Math.min(list.length - 1, i + 1)].focus(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); list[Math.max(0, i - 1)].focus(); }
+      else if (e.key === "Home") { e.preventDefault(); list[0].focus(); }
+      else if (e.key === "End") { e.preventDefault(); list[list.length - 1].focus(); }
+      else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (i >= 0) choose(list[i].dataset.value); }
+      else if (e.key === "Escape") { e.preventDefault(); close(true); }
+      else if (e.key === "Tab") { close(false); }
+    });
+    document.addEventListener("click", function (e) {
+      if (!menu.hidden && !$("profWrap").contains(e.target)) close(false);
+    });
   }
 
   // ---- history charts
@@ -711,7 +755,11 @@
     document.title = "Crafter's Ledger - " + s.profession + " profits in WoW: Forever";
     $("title").textContent = s.profession + " profits in WoW: Forever";
     $("profIcon").innerHTML = iconFor(s.profession);
-    renderHint(s.profession);
+    renderHint();
+    $("profBtnLabel").textContent = s.profession;
+    Array.prototype.forEach.call($("profMenu").children, function (li) { li.setAttribute("aria-selected", String(li.dataset.value === s.profession)); });
+    $("toolbar").hidden = activeTab === "list" || activeTab === "cons";
+    $("rankField").hidden = activeTab !== "rank";
     saveSettings(s);
     syncUrl(s);
     updateListCount();
@@ -784,6 +832,7 @@
     if (hash.p && names.indexOf(hash.p) !== -1) saved.profession = hash.p;
     professionSelect.value = saved.profession && names.indexOf(saved.profession) !== -1 ? saved.profession : names[0];
     fillTiers(professionSelect.value, saved.tier);
+    buildProfMenu();
 
     houseConfirmed = !!saved.houseConfirmed;
     try { houseSnoozed = sessionStorage.getItem("forever-house-later") === "1"; } catch (e) { /* ignore */ }
@@ -826,12 +875,15 @@
       try { sessionStorage.setItem("forever-house-later", "1"); } catch (e) { /* ignore */ }
       render();
     });
-    $("findHouseBtn").addEventListener("click", function () {
+    function openFinder() {
       var panel = $("houseHelp");
       panel.open = true;
       panel.scrollIntoView({ behavior: "smooth", block: "start" });
       setTimeout(function () { $("findItem1").focus({ preventScroll: true }); }, 350);
-    });
+    }
+    $("findHouseBtn").addEventListener("click", openFinder);
+    $("houseLinkBtn").addEventListener("click", openFinder);
+    $("closeFinder").addEventListener("click", function () { $("houseHelp").open = false; $("houseLinkBtn").focus(); });
     $("rulesetLine").textContent = "This page shows " + String(data.region || "us").toUpperCase() + " " + (RULESETS[data.ruleset] || "ruleset " + data.ruleset) +
       " auction houses (" + data.houses.length + " of them).";
     var byName = {}, datalist = $("findItems");
