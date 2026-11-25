@@ -60,15 +60,18 @@
   .hero h1 { font: 700 clamp(1.5rem, 4.2vw, 2.3rem)/1.15 var(--serif); letter-spacing: 0.04em; margin: 0 0 8px;
     background: linear-gradient(180deg, var(--gold-hi), var(--gold) 60%, var(--gold-lo)); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .hero p { margin: 0 auto; max-width: 620px; color: var(--muted); }
-  .status { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 0.82rem; color: var(--muted);
-    padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pos); box-shadow: 0 0 8px var(--pos); }
+  .status { display: inline-flex; align-items: center; gap: 10px; font-size: 1rem; color: var(--text);
+    padding: 9px 18px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--pos); box-shadow: 0 0 8px var(--pos); }
   .status.stale { color: var(--warn); border-color: rgba(232, 180, 90, 0.5); }
   .status.stale .dot { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
   #errors { max-width: 760px; margin: 12px auto 0; padding: 10px 14px; border: 1px solid rgba(232, 180, 90, 0.5); border-radius: 8px; color: var(--warn); background: rgba(232, 180, 90, 0.07); font-size: 0.88rem; }
 
-  .aboutlink { margin: 12px 0 0; font-size: 0.88rem; }
-  .aboutlink a { text-decoration: none; border-bottom: 1px dotted var(--gold-lo); }
+  .hero-meta { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; margin-top: 18px; }
+  .howlink { display: inline-flex; align-items: center; gap: 8px; font-size: 1rem; font-weight: 600; text-decoration: none; color: #1a1405;
+    background: linear-gradient(180deg, var(--gold-hi), var(--gold)); border: 1px solid var(--gold); border-radius: 999px; padding: 9px 20px; box-shadow: 0 4px 16px rgba(214, 178, 106, 0.2); }
+  .howlink:hover, .howlink:focus-visible { filter: brightness(1.08); outline: none; box-shadow: 0 4px 22px rgba(214, 178, 106, 0.35); }
+  :root[data-theme="light"] .howlink { color: #fffdf6; background: var(--gold); }
 
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; border-bottom: 1px solid var(--line); margin-bottom: 16px; scrollbar-width: thin; }
@@ -270,6 +273,7 @@
     .navbtn { padding: 5px 9px; font-size: 0.76rem; }
     .brand b { font-size: 0.9rem; letter-spacing: 0.08em; }
     .panel { padding: 14px; }
+    .status { font-size: 0.92rem; padding: 8px 14px; border-radius: 16px; text-align: center; }
   }
 </style>
 </head>
@@ -297,8 +301,10 @@
   <section class="hero">
     <h1 id="title">WoW: Forever crafting profits</h1>
     <p>Your hourly guide to the most profitable crafts in WoW: Forever. Pick a profession and your auction house, and the best recipes rise to the top.</p>
-    <div id="updatedBox" class="status"><span class="dot"></span><span id="updated">Loading prices...</span></div>
-    <p class="aboutlink"><a href="#about">How it works - About this tool &darr;</a></p>
+    <div class="hero-meta">
+      <div id="updatedBox" class="status"><span class="dot"></span><span id="updated">Loading prices...</span></div>
+      <a class="howlink" href="#about">How it works <span aria-hidden="true">&darr;</span></a>
+    </div>
     <div id="errors" hidden></div>
   </section>
 
