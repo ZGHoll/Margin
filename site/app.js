@@ -376,7 +376,7 @@
 
   function renderHint() {
     var n = professionNames().length;
-    $("profHint").textContent = n + (n === 1 ? " profession" : " professions") + " available. Open the box to see them all.";
+    $("profHint").textContent = n + (n === 1 ? " profession" : " professions") + " available. Expand the dropdown to see them all.";
   }
 
   // Custom profession menu so every profession shows its icon.
