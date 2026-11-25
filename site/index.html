@@ -106,6 +106,14 @@
   .help-steps { color: var(--body2); font-size: 0.9rem; padding-left: 20px; }
   .find-grid { display: grid; grid-template-columns: 1fr 130px; gap: 8px; margin: 10px 0; }
   .find-grid input { font: inherit; font-size: 0.92rem; color: var(--text); background: var(--bg1); border: 1px solid var(--line2); border-radius: 8px; padding: 8px 10px; width: 100%; min-height: 38px; }
+
+  .notice { margin-top: 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--gold); background: rgba(214, 178, 106, 0.1); }
+  .notice[hidden] { display: none; }
+  .notice p { margin: 0 0 8px; font-size: 0.92rem; }
+  .notice .notice-sub { color: var(--muted); font-size: 0.84rem; }
+  .notice .btnrow { margin-top: 6px; flex-wrap: wrap; }
+  .navbtn.primary { background: linear-gradient(180deg, var(--gold-hi), var(--gold)); color: #1a1405; border-color: var(--gold); font-weight: 700; }
+  :root[data-theme="light"] .navbtn.primary { color: #fffdf6; background: var(--gold); }
   .divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--gold-lo); }
   .divider::before, .divider::after { content: ""; height: 1px; flex: 1; background: linear-gradient(90deg, transparent, var(--gold-lo)); }
   .divider::after { background: linear-gradient(270deg, transparent, var(--gold-lo)); }
@@ -273,6 +281,15 @@
           <select id="house" aria-label="Auction house"></select>
           <span class="caret" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M3 6l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.800" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         </div>
+      </div>
+    </div>
+    <div class="notice" id="houseNotice" hidden>
+      <p><b>Check your auction house.</b> Prices change a lot between houses, so rankings are only right for yours. You are looking at <b id="houseNoticeName"></b>. Is that where you play?</p>
+      <p class="notice-sub">This is a one-time step. Your choice is remembered on this device and browser, so you will not be asked again.</p>
+      <div class="btnrow">
+        <button type="button" class="navbtn primary" id="findHouseBtn">Find my house</button>
+        <button type="button" class="navbtn" id="confirmHouse">Yes, this is mine</button>
+        <button type="button" class="navbtn" id="laterHouse">Maybe later</button>
       </div>
     </div>
     <p class="picker-hint" id="profHint"></p>

@@ -255,6 +255,8 @@
   var data = null;
   var historyPromise = null;
   var activeTab = "rank";
+  var houseConfirmed = false;
+  var houseSnoozed = false;
   var TABS = ["rank", "list", "cvb", "cons", "lvl"];
 
   var ICONS = {
@@ -296,6 +298,7 @@
       hideScarce: $("hideScarce").checked,
       favOnly: $("favOnly").checked,
       tab: activeTab,
+      houseConfirmed: houseConfirmed,
     };
   }
 
@@ -712,6 +715,8 @@
     saveSettings(s);
     syncUrl(s);
     updateListCount();
+    $("houseNotice").hidden = houseConfirmed || houseSnoozed;
+    $("houseNoticeName").textContent = houseName(s.house);
     TABS.forEach(function (t) {
       $("tab-" + t).hidden = t !== activeTab;
       var b = document.querySelector('[data-tab="' + t + '"]');
@@ -780,6 +785,8 @@
     professionSelect.value = saved.profession && names.indexOf(saved.profession) !== -1 ? saved.profession : names[0];
     fillTiers(professionSelect.value, saved.tier);
 
+    houseConfirmed = !!saved.houseConfirmed;
+    try { houseSnoozed = sessionStorage.getItem("forever-house-later") === "1"; } catch (e) { /* ignore */ }
     var wantTab = hash.t || saved.tab;
     activeTab = TABS.indexOf(wantTab) !== -1 ? wantTab : "rank";
 
@@ -812,6 +819,19 @@
       document.querySelector('[data-tab="' + t + '"]').addEventListener("click", function () { activeTab = t; render(); });
     });
     $("cvbOnly").addEventListener("change", render);
+    $("house").addEventListener("change", function () { houseConfirmed = true; });
+    $("confirmHouse").addEventListener("click", function () { houseConfirmed = true; render(); });
+    $("laterHouse").addEventListener("click", function () {
+      houseSnoozed = true;
+      try { sessionStorage.setItem("forever-house-later", "1"); } catch (e) { /* ignore */ }
+      render();
+    });
+    $("findHouseBtn").addEventListener("click", function () {
+      var panel = $("houseHelp");
+      panel.open = true;
+      panel.scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(function () { $("findItem1").focus({ preventScroll: true }); }, 350);
+    });
     $("rulesetLine").textContent = "This page shows " + String(data.region || "us").toUpperCase() + " " + (RULESETS[data.ruleset] || "ruleset " + data.ruleset) +
       " auction houses (" + data.houses.length + " of them).";
     var byName = {}, datalist = $("findItems");
@@ -840,7 +860,7 @@
         var row = el("div", null, "hrow");
         row.appendChild(el("span", houseLabel(f.house), "hname"));
         row.appendChild(el("span", f.matched + " of " + f.entries + " items matched", "htext"));
-        row.appendChild(button("Use this house", "navbtn", function () { $("house").value = String(f.house.id); render(); }));
+        row.appendChild(button("Use this house", "navbtn", function () { $("house").value = String(f.house.id); houseConfirmed = true; render(); }));
         out.appendChild(row);
       });
     });
