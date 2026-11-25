@@ -41,7 +41,7 @@
     "days": 28
   },
   "discord": {
-    "enabled": false,
+    "enabled": true,
     "top_n": 5,
     "hours_between_posts": 24
   }
