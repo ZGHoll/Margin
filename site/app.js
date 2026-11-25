@@ -201,7 +201,7 @@
 
   function render() {
     var s = currentSettings();
-    document.title = "Suln - " + s.profession + " profits in WoW: Forever";
+    document.title = "Crafter's Ledger - " + s.profession + " profits in WoW: Forever";
     $("title").textContent = s.profession + " profits in WoW: Forever";
     $("profIcon").innerHTML = iconFor(s.profession);
     renderHint(s.profession);
