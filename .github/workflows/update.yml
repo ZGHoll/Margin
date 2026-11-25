@@ -2,7 +2,7 @@ name: Update prices and publish site
 
 on:
   schedule:
-    - cron: 7,37 * * * *      # every hour, at 17 minutes past
+    - cron: 7,37 * * * *       # GitHub's own timer (often skipped); the "next" job below is the backup
   workflow_dispatch:           # lets you run it by hand from the Actions tab
 
 permissions:
@@ -10,14 +10,13 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    concurrency:
+      group: ledger-build
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 
@@ -45,9 +44,43 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # Backup timer. After every run (even a failed one) wait about 55 minutes, then start the next run.
+  # If another run already started in the last 30 minutes (for example from GitHub's own schedule),
+  # it does nothing, so you never get a pile of duplicate runs.
+  next:
+    needs: [build, deploy]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Wait, then start the next update
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
+          THIS_RUN: ${{ github.run_id }}
+        run: |
+          sleep 3300
+          since=$(date -u -d '30 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
+          recent=$(gh run list --repo "$REPO" --workflow update.yml --limit 20 --json databaseId,createdAt \
+            --jq "[.[] | select(.databaseId != $THIS_RUN and .createdAt > \"$since\")] | length")
+          echo "Runs started in the last 30 minutes: $recent"
+          if [ "$recent" = "0" ]; then
+            gh workflow run update.yml --repo "$REPO" --ref "$REF"
+            echo "Started the next run."
+          else
+            echo "Another run is already going, so not starting one."
+          fi
