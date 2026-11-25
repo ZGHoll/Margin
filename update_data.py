@@ -2,7 +2,7 @@
 WoW: Forever Tailoring profit site - data updater
 =================================================
 Run by GitHub Actions every hour (or by hand). It:
-  1. downloads every Tailoring recipe (refreshed once a day),
+  1. downloads every recipe for each profession in config.json (refreshed once a day),
   2. downloads vendor prices for the reagents (refreshed once a day),
   3. downloads the auction house snapshots (every run),
   4. writes site/data.json, which the web page (site/index.html) reads.
@@ -122,14 +122,17 @@ def find_profession_id(token, region, namespace, name, fallback_id):
         for p in index.get("professions", []):
             if text_of(p.get("name")).lower() == name.lower():
                 return p["id"]
-    print(f"Could not read the profession list; trying ID {fallback_id}.")
+    if not fallback_id:
+        raise UpdateError(f"Could not find a profession named '{name}'. Check the spelling in config.json "
+                          "or add a fallback_id.")
+    print(f"Could not find '{name}' in the profession list; trying ID {fallback_id}.")
     return fallback_id
 
 
-def collect_recipe_list(token, region, namespace, profession_id):
+def collect_recipe_list(token, region, namespace, profession_id, name="profession"):
     profession = api_get(f"/data/wow/profession/{profession_id}", token, region, namespace)
     if not profession:
-        raise UpdateError("The profession page was not found. Forever's profession data may not be "
+        raise UpdateError(f"{name}: the profession page was not found. Forever's profession data may not be "
                           "available through the API yet.")
     found = []
     tiers = profession.get("skill_tiers") or []
@@ -178,30 +181,34 @@ def read_recipe(recipe_id, fallback_name, tier, token, region, namespace):
     }
 
 
-def get_recipes(token, region, config):
-    cache_file = CACHE_DIR / "recipes.json"
+def slug(name):
+    return "".join(ch.lower() if ch.isalnum() else "-" for ch in name).strip("-")
+
+
+def get_recipes(token, region, config, profession):
+    name = profession["name"]
+    cache_file = CACHE_DIR / f"recipes-{slug(name)}.json"
     cache = load_json(cache_file)
     if is_fresh(cache, config.get("refresh_recipes_hours", 24)):
-        print(f"Using {len(cache['recipes'])} cached recipes.")
+        print(f"{name}: using {len(cache['recipes'])} cached recipes.")
         return cache["recipes"]
 
     namespace = f"static-forever-{region}"
-    profession_id = find_profession_id(token, region, namespace, config.get("profession", "Tailoring"),
-                                       config.get("profession_fallback_id", 197))
-    recipe_list = collect_recipe_list(token, region, namespace, profession_id)
+    profession_id = find_profession_id(token, region, namespace, name, profession.get("fallback_id"))
+    recipe_list = collect_recipe_list(token, region, namespace, profession_id, name)
     if not recipe_list:
-        raise UpdateError("No recipes were found. Forever's recipe data may not be available through the API yet.")
-    print(f"Downloading {len(recipe_list)} recipes...")
+        raise UpdateError(f"{name}: no recipes were found. Forever's recipe data may not be available through the API yet.")
+    print(f"{name}: downloading {len(recipe_list)} recipes...")
     recipes = []
-    for number, (recipe_id, name, tier) in enumerate(recipe_list, start=1):
-        recipe = read_recipe(recipe_id, name, tier, token, region, namespace)
+    for number, (recipe_id, recipe_name, tier) in enumerate(recipe_list, start=1):
+        recipe = read_recipe(recipe_id, recipe_name, tier, token, region, namespace)
         if recipe:
             recipes.append(recipe)
         time.sleep(DELAY)
         if number % 50 == 0:
             print(f"  {number}/{len(recipe_list)}")
     if not recipes:
-        raise UpdateError("Recipes were found but none had reagent data.")
+        raise UpdateError(f"{name}: recipes were found but none had reagent data.")
     save_json(cache_file, {"fetched": time.time(), "recipes": recipes})
     return recipes
 
@@ -298,6 +305,14 @@ def get_auction_prices(token, region, ruleset, wanted_ids):
 # ----------------------------------------------------------------------------
 # Main
 # ----------------------------------------------------------------------------
+def professions_from_config(config):
+    """Accepts the new list format, or the old single-profession settings."""
+    listed = config.get("professions")
+    if listed:
+        return [p if isinstance(p, dict) else {"name": p} for p in listed]
+    return [{"name": config.get("profession", "Tailoring"), "fallback_id": config.get("profession_fallback_id", 197)}]
+
+
 def main():
     config = load_json(ROOT / "config.json", {})
     overrides = (load_json(ROOT / "overrides.json", {}) or {}).get("items", {})
@@ -311,14 +326,27 @@ def main():
                           "Add them as repository secrets (see README).")
     token = get_token(client_id, client_secret)
 
-    recipes = get_recipes(token, region, config)
-    reagent_ids = {r["id"] for recipe in recipes for r in recipe["reagents"]}
-    output_ids = {recipe["item_id"] for recipe in recipes if recipe["item_id"]}
+    # Each profession is read separately. If one fails but another works, the page still
+    # publishes and shows a warning for the one that failed.
+    profession_data, errors = [], []
+    for profession in professions_from_config(config):
+        try:
+            recipes = get_recipes(token, region, config, profession)
+            profession_data.append({"name": profession["name"], "recipes": recipes})
+        except UpdateError as err:
+            print(f"WARNING: {err}", file=sys.stderr)
+            errors.append(str(err))
+    if not profession_data:
+        raise UpdateError("No profession could be loaded. " + " | ".join(errors))
+
+    all_recipes = [r for p in profession_data for r in p["recipes"]]
+    reagent_ids = {r["id"] for recipe in all_recipes for r in recipe["reagents"]}
+    output_ids = {recipe["item_id"] for recipe in all_recipes if recipe["item_id"]}
     vendor = get_vendor_prices(token, region, config, sorted(reagent_ids))
     prices, houses = get_auction_prices(token, region, ruleset, reagent_ids | output_ids)
 
     names = {}
-    for recipe in recipes:
+    for recipe in all_recipes:
         for r in recipe["reagents"]:
             if r["name"]:
                 names[str(r["id"])] = r["name"]
@@ -330,11 +358,11 @@ def main():
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "region": region,
         "ruleset": ruleset,
-        "profession": config.get("profession", "Tailoring"),
         "ah_cut": config.get("ah_cut", 0.05),
         "default_house": default_house,
         "houses": houses,
-        "recipes": recipes,
+        "professions": profession_data,
+        "errors": errors,
         "names": names,
         "prices": prices,
         "vendor": {str(k): v for k, v in vendor.items() if v > 0},
@@ -342,7 +370,8 @@ def main():
     }
     SITE_DIR.mkdir(exist_ok=True)
     save_json(SITE_DIR / "data.json", data)
-    print(f"Done: {len(recipes)} recipes, {len(houses)} auction houses with data. Wrote site/data.json")
+    summary = ", ".join(f"{p['name']} {len(p['recipes'])}" for p in profession_data)
+    print(f"Done: {summary} recipes, {len(houses)} auction houses with data. Wrote site/data.json")
 
 
 if __name__ == "__main__":
