@@ -3,82 +3,293 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WoW: Forever profit</title>
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Hourly crafting profit rankings for WoW: Forever. Pick a profession and an auction house to see the most profitable crafts.">
+<title>Suln - WoW: Forever crafting profits</title>
 <style>
   :root {
-    --bg: #ffffff; --fg: #1f2328; --muted: #656d76; --line: #d8dee4; --card: #f6f8fa;
-    --pos: #1a7f37; --neg: #cf222e; --warn: #9a6700; --accent: #0969da;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --line: #30363d; --card: #161b22;
-      --pos: #3fb950; --neg: #f85149; --warn: #d29922; --accent: #58a6ff;
-    }
+    --bg0: #07090f; --bg1: #0d1018; --panel: #131724; --panel2: #1a2033; --line: #2a3250; --line2: #3a4468;
+    --gold: #d6b26a; --gold-hi: #f3dc9a; --gold-lo: #8c6d2e;
+    --text: #ebe8df; --muted: #9ba2b8; --faint: #6d748b;
+    --pos: #72d68f; --neg: #ff7b7b; --warn: #e8b45a; --arcane: #8798ff; --ember: #ff9c52;
+    --serif: "Cinzel", "Trajan Pro", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 1100px; margin: 0 auto; padding: 16px; }
-  h1 { font-size: 1.4rem; margin: 0 0 4px; }
-  #updated { color: var(--muted); margin: 0 0 14px; font-size: 0.9rem; }
-  #updated.warn { color: var(--warn); }
-  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 10px; }
-  label { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; color: var(--muted); }
-  label.check { flex-direction: row; align-items: center; gap: 8px; align-self: end; }
-  select, input[type=number], input[type=search] { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 100%; }
-  #summary { color: var(--muted); font-size: 0.85rem; margin: 6px 0; }
-  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
-  table { border-collapse: collapse; width: 100%; min-width: 640px; }
-  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { background: var(--card); font-size: 0.8rem; color: var(--muted); position: sticky; top: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 70px; }
+  body {
+    margin: 0; color: var(--text); font: 15px/1.5 var(--sans); min-height: 100vh;
+    background:
+      radial-gradient(1200px 520px at 50% -140px, rgba(135, 152, 255, 0.16), transparent 70%),
+      radial-gradient(700px 400px at 90% 8%, rgba(214, 178, 106, 0.09), transparent 70%),
+      radial-gradient(600px 400px at 6% 30%, rgba(255, 156, 82, 0.05), transparent 70%),
+      linear-gradient(180deg, var(--bg1), var(--bg0) 480px);
+    background-attachment: fixed;
+  }
+  a { color: var(--gold-hi); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 18px; }
+
+  /* ---------- top bar ---------- */
+  .topbar { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px); background: rgba(9, 11, 18, 0.82); border-bottom: 1px solid var(--line); }
+  .topbar .wrap { display: flex; align-items: center; gap: 14px; height: 58px; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
+  .brand svg { width: 30px; height: 34px; flex: none; }
+  .brand b { font: 700 1.2rem var(--serif); letter-spacing: 0.18em; color: var(--gold-hi); }
+  .brand small { display: block; font: 0.62rem var(--sans); letter-spacing: 0.22em; color: var(--muted); text-transform: uppercase; margin-top: -2px; }
+  nav { margin-left: auto; display: flex; gap: 6px; }
+  nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 0.9rem; }
+  nav a:hover, nav a:focus-visible { color: var(--gold-hi); background: rgba(214, 178, 106, 0.1); outline: none; }
+
+  /* ---------- hero ---------- */
+  .hero { text-align: center; padding: 34px 0 10px; }
+  .hero h1 { font: 700 clamp(1.5rem, 4.2vw, 2.3rem)/1.15 var(--serif); letter-spacing: 0.04em; margin: 0 0 8px;
+    background: linear-gradient(180deg, var(--gold-hi), var(--gold) 60%, var(--gold-lo)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { margin: 0 auto; max-width: 620px; color: var(--muted); }
+  .status { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 0.82rem; color: var(--muted);
+    padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: rgba(19, 23, 36, 0.7); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pos); box-shadow: 0 0 8px var(--pos); }
+  .status.stale { color: var(--warn); border-color: rgba(232, 180, 90, 0.5); }
+  .status.stale .dot { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+  #errors { max-width: 760px; margin: 12px auto 0; padding: 10px 14px; border: 1px solid rgba(232, 180, 90, 0.5); border-radius: 8px; color: var(--warn); background: rgba(232, 180, 90, 0.07); font-size: 0.88rem; }
+
+  .divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--gold-lo); }
+  .divider::before, .divider::after { content: ""; height: 1px; flex: 1; background: linear-gradient(90deg, transparent, var(--gold-lo)); }
+  .divider::after { background: linear-gradient(270deg, transparent, var(--gold-lo)); }
+  .divider svg { width: 18px; height: 18px; }
+
+  /* ---------- panels ---------- */
+  .panel { position: relative; background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .panel::before { content: ""; position: absolute; inset: 0; border-radius: 12px; pointer-events: none; box-shadow: inset 0 1px 0 rgba(243, 220, 154, 0.08); }
+  .panel h2 { font: 700 0.95rem var(--serif); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin: 0 0 12px; }
+
+  /* ---------- profession picker (the big obvious one) ---------- */
+  .picker { border: 1px solid var(--gold-lo); background:
+      linear-gradient(180deg, rgba(214, 178, 106, 0.10), rgba(214, 178, 106, 0.03)), var(--panel);
+    box-shadow: 0 0 0 1px rgba(214, 178, 106, 0.08), 0 10px 40px rgba(0, 0, 0, 0.35), 0 0 36px rgba(214, 178, 106, 0.08); }
+  .picker-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: end; }
+  .picker-label { font: 700 0.78rem var(--serif); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .picker-label .step { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--gold); color: #1a1405; font: 700 0.72rem var(--sans); letter-spacing: 0; }
+  .select-wrap { position: relative; }
+  .select-wrap select { appearance: none; -webkit-appearance: none; width: 100%; font: 600 1.15rem var(--sans); color: var(--text); cursor: pointer;
+    background: var(--bg1); border: 2px solid var(--gold); border-radius: 10px; padding: 14px 56px 14px 58px; min-height: 58px; }
+  .select-wrap select:hover { background: #121726; }
+  .select-wrap select:focus-visible { outline: 3px solid rgba(243, 220, 154, 0.5); outline-offset: 2px; }
+  .select-wrap .icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; color: var(--gold-hi); pointer-events: none; }
+  .select-wrap .icon svg { width: 100%; height: 100%; }
+  .select-wrap .caret { position: absolute; right: 0; top: 0; bottom: 0; width: 50px; display: grid; place-items: center; pointer-events: none;
+    background: linear-gradient(180deg, var(--gold-hi), var(--gold)); border-radius: 0 8px 8px 0; margin: 2px; color: #1a1405; }
+  .select-wrap .caret svg { width: 18px; height: 18px; }
+  .house-select select { font-size: 1rem; border-width: 1px; border-color: var(--line2); padding-left: 14px; min-height: 58px; }
+  .house-select .caret { background: var(--panel2); color: var(--gold-hi); border: 1px solid var(--line2); border-left: 0; margin: 1px; }
+  .picker-hint { margin: 12px 0 0; color: var(--muted); font-size: 0.88rem; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .picker-hint .chip { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line2); color: var(--muted); font-size: 0.82rem; }
+  .picker-hint .chip.on { border-color: var(--gold); color: var(--gold-hi); background: rgba(214, 178, 106, 0.12); }
+  @keyframes nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+  .select-wrap:not(.touched) .caret svg { animation: nudge 1.6s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) { .select-wrap .caret svg { animation: none !important; } html { scroll-behavior: auto; } }
+
+  /* ---------- filters ---------- */
+  details.filters { margin-top: 16px; }
+  details.filters summary { cursor: pointer; list-style: none; color: var(--muted); font-size: 0.9rem; padding: 8px 2px; user-select: none; }
+  details.filters summary::-webkit-details-marker { display: none; }
+  details.filters summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; color: var(--gold); transition: transform .15s; }
+  details.filters[open] summary::before { transform: rotate(90deg); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; padding-top: 8px; }
+  label.field { display: flex; flex-direction: column; gap: 4px; font-size: 0.76rem; letter-spacing: 0.04em; color: var(--muted); }
+  .field select, .field input[type=number], .field input[type=search] { font: inherit; font-size: 0.92rem; color: var(--text); background: var(--bg1); border: 1px solid var(--line2); border-radius: 8px; padding: 8px 10px; width: 100%; min-height: 38px; }
+  .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--arcane); outline-offset: 1px; }
+  label.check { flex-direction: row; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--text); align-self: end; min-height: 38px; }
+  label.check input { width: 18px; height: 18px; accent-color: var(--gold); }
+
+  /* ---------- podium ---------- */
+  .podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .medal { position: relative; padding: 16px; border-radius: 12px; background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--line); overflow: hidden; }
+  .medal.r1 { border-color: var(--gold); box-shadow: 0 0 30px rgba(214, 178, 106, 0.14); }
+  .medal .rank { font: 700 0.72rem var(--serif); letter-spacing: 0.2em; color: var(--gold); text-transform: uppercase; }
+  .medal h3 { margin: 6px 0 2px; font: 600 1.05rem var(--sans); }
+  .medal .tier { color: var(--faint); font-size: 0.8rem; }
+  .medal .big { margin-top: 10px; font: 700 1.6rem var(--sans); color: var(--pos); font-variant-numeric: tabular-nums; }
+  .medal .sub { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+  .medal::after { content: ""; position: absolute; right: -28px; top: -28px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, rgba(214, 178, 106, 0.18), transparent 70%); }
+
+  /* ---------- table ---------- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; min-width: 720px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(42, 50, 80, 0.7); vertical-align: middle; }
+  th { font: 700 0.7rem var(--serif); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); background: var(--panel2); position: sticky; top: 0; white-space: nowrap; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  td.tier { color: var(--muted); white-space: nowrap; }
+  td.rk { width: 44px; color: var(--faint); font-variant-numeric: tabular-nums; }
   tr.main { cursor: pointer; }
-  tr.main:hover { background: var(--card); }
+  tr.main:hover { background: rgba(135, 152, 255, 0.07); }
+  tr.main:focus-visible { outline: 2px solid var(--arcane); outline-offset: -2px; }
+  .rname { font-weight: 600; }
+  .rtier { color: var(--faint); font-size: 0.78rem; }
   .pos { color: var(--pos); font-weight: 600; }
   .neg { color: var(--neg); font-weight: 600; }
-  .warn { color: var(--warn); font-size: 0.8rem; }
-  tr.detail td { background: var(--card); }
-  tr.detail ul { margin: 0; padding-left: 18px; }
-  footer { color: var(--muted); font-size: 0.78rem; margin-top: 16px; }
+  .bar { height: 4px; border-radius: 2px; background: rgba(114, 214, 143, 0.18); margin-top: 5px; min-width: 90px; }
+  .bar i { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg, #3fae63, var(--pos)); }
+  .warn { color: var(--warn); font-size: 0.78rem; }
+  tr.detail td { background: rgba(7, 9, 15, 0.5); }
+  .reag { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 0; }
+  .reag span { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 0.82rem; }
+  .reag em { font-style: normal; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; margin-left: 6px; padding: 1px 6px; border-radius: 4px; }
+  .src-auction { background: rgba(135, 152, 255, 0.15); color: var(--arcane); }
+  .src-vendor { background: rgba(255, 156, 82, 0.15); color: var(--ember); }
+  .src-override { background: rgba(214, 178, 106, 0.18); color: var(--gold-hi); }
+  .src-missing { background: rgba(255, 123, 123, 0.15); color: var(--neg); }
+  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  #summary { color: var(--muted); font-size: 0.85rem; margin: 18px 2px 8px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .hint { color: var(--faint); font-size: 0.8rem; margin: 8px 2px 0; }
+
+  /* ---------- about ---------- */
+  .about-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+  .about-grid p, .about-grid li { color: #c9ccd8; font-size: 0.92rem; }
+  .about-grid p { margin: 0 0 8px; }
+  .about-grid ul { margin: 0; padding-left: 18px; }
+  .about-grid li { margin-bottom: 5px; }
+  code.eq { display: block; background: var(--bg1); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; color: var(--gold-hi); font: 0.85rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 8px 0; white-space: normal; }
+  footer { margin: 34px 0 30px; text-align: center; color: var(--faint); font-size: 0.78rem; }
+  footer .wrap { border-top: 1px solid var(--line); padding-top: 18px; }
+
+  @media (max-width: 760px) {
+    .picker-row { grid-template-columns: 1fr; }
+    .podium { grid-template-columns: 1fr; }
+    .brand small { display: none; }
+    .select-wrap select { font-size: 1.05rem; }
+    th, td { padding: 9px 9px; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1 id="title">WoW: Forever profit</h1>
-  <p id="updated">Loading prices...</p>
-  <p id="errors" class="warn" hidden></p>
 
-  <section class="controls" aria-label="Settings">
-    <label>Profession <select id="profession"></select></label>
-    <label>Auction house <select id="house"></select></label>
-    <label>Rank by
-      <select id="rankBy"><option value="profit">Profit per craft</option><option value="roi">Return on cost (%)</option></select>
-    </label>
-    <label>Buy reagents at
-      <select id="buyBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
-    </label>
-    <label>Sell crafts at
-      <select id="sellBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
-    </label>
-    <label>Auction house cut (%) <input id="cut" type="number" min="0" max="50" step="0.5"></label>
-    <label>Min. listings of the item <input id="minListings" type="number" min="0" step="1"></label>
-    <label>Skill tier <select id="tier"><option value="">All</option></select></label>
-    <label>Search <input id="search" type="search" placeholder="Recipe name"></label>
-    <label class="check"><input id="hideIncomplete" type="checkbox" checked> Hide recipes missing a price</label>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Suln home">
+      <svg viewBox="0 0 30 34" aria-hidden="true">
+        <path d="M15 1.5 28 6v10.5c0 8.2-5.4 13.3-13 16-7.6-2.7-13-7.8-13-16V6z" fill="#10131c" stroke="#d6b26a" stroke-width="1.5"/>
+        <path d="M8 12h14c0 2.8-1.7 4.4-4.4 4.9V20h3v2.6H9.4V20h3v-3.1C9.7 16.4 8 14.800 8 12z" fill="#f3dc9a"/>
+        <path d="M15 4.2l1 2.1 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.300L11.700 6.600l2.300-.3z" fill="#8798ff" opacity=".9"/>
+      </svg>
+      <span><b>SULN</b><small>Forever crafting</small></span>
+    </a>
+    <nav aria-label="Main">
+      <a href="#top">Rankings</a>
+      <a href="#about">About</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+  <section class="hero">
+    <h1 id="title">WoW: Forever crafting profits</h1>
+    <p>Which crafts earn the most gold right now? Pick a profession and your auction house, and the best recipes rise to the top. Prices refresh every hour.</p>
+    <div id="updatedBox" class="status"><span class="dot"></span><span id="updated">Loading prices...</span></div>
+    <div id="errors" hidden></div>
   </section>
 
-  <p id="summary"></p>
+  <div class="divider" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M9 1l2.600 6.400L18 9l-6.400 2.600L9 18l-2.600-6.400L0 9l6.400-1.600z" fill="currentColor"/></svg></div>
+
+  <section class="panel picker" aria-label="Choose profession and auction house">
+    <div class="picker-row">
+      <div>
+        <div class="picker-label"><span class="step">1</span> Choose a profession</div>
+        <div class="select-wrap" id="profWrap">
+          <span class="icon" id="profIcon" aria-hidden="true"></span>
+          <select id="profession" aria-label="Profession"></select>
+          <span class="caret" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M3 6l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.800" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </div>
+      <div>
+        <div class="picker-label"><span class="step">2</span> Choose your auction house</div>
+        <div class="select-wrap house-select">
+          <select id="house" aria-label="Auction house"></select>
+          <span class="caret" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M3 6l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.800" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </div>
+    </div>
+    <p class="picker-hint" id="profHint"></p>
+
+    <details class="filters">
+      <summary>Filters and price settings</summary>
+      <div class="grid">
+        <label class="field">Rank by
+          <select id="rankBy"><option value="profit">Profit per craft</option><option value="roi">Return on cost (%)</option></select>
+        </label>
+        <label class="field">Buy reagents at
+          <select id="buyBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
+        </label>
+        <label class="field">Sell crafts at
+          <select id="sellBasis"><option value="lowest">Lowest</option><option value="p25">25th percentile</option><option value="median">Median</option></select>
+        </label>
+        <label class="field">Auction house cut (%) <input id="cut" type="number" min="0" max="50" step="0.5"></label>
+        <label class="field">Min. listings of the item <input id="minListings" type="number" min="0" step="1"></label>
+        <label class="field">Skill tier <select id="tier"><option value="">All</option></select></label>
+        <label class="field">Search recipes <input id="search" type="search" placeholder="Recipe name"></label>
+        <label class="field check"><input id="hideIncomplete" type="checkbox" checked> Hide recipes missing a price</label>
+      </div>
+    </details>
+  </section>
+
+  <section id="podiumSection" style="margin-top:22px" aria-label="Top crafts">
+    <div class="podium" id="podium"></div>
+  </section>
+
+  <div id="summary"></div>
   <div class="tablewrap">
     <table>
       <thead>
-        <tr><th class="num">#</th><th>Recipe</th><th>Tier</th><th class="num">Profit</th><th class="num">Return</th><th class="num">Sells for</th><th class="num">Listed</th><th class="num">Reagent cost</th></tr>
+        <tr><th class="num">#</th><th>Recipe</th><th class="num">Profit</th><th class="num">Return</th><th class="num">Sells for</th><th class="num">Listed</th><th class="num">Reagent cost</th></tr>
       </thead>
       <tbody id="rows"></tbody>
     </table>
   </div>
-  <p class="warn" style="margin-top:8px">Click a recipe to see its reagents. Prices are estimates from hourly auction snapshots and do not include deposits.</p>
-  <footer>Unofficial fan tool. Data comes from Blizzard's game data API, which is not officially documented for WoW: Forever yet, so it can break without notice. Not affiliated with or endorsed by Blizzard Entertainment.</footer>
+  <p class="hint">Click a recipe to see its reagents and where each price came from. Estimates only: deposits are not included.</p>
+
+  <div class="divider" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M9 1l2.600 6.400L18 9l-6.400 2.600L9 18l-2.600-6.400L0 9l6.400-1.600z" fill="currentColor"/></svg></div>
+
+  <section id="about" aria-labelledby="aboutTitle">
+    <h2 id="aboutTitle" style="font:700 1.3rem var(--serif);letter-spacing:.12em;color:var(--gold-hi);text-align:center;margin:0 0 16px">About Suln</h2>
+    <div class="about-grid">
+      <div class="panel">
+        <h2>What this is</h2>
+        <p>Suln ranks crafting recipes in WoW: Forever by how much gold each craft is expected to earn. It reads auction house prices every hour, works out what a craft costs to make and what the result sells for, and lists the best ones first.</p>
+        <p>Choose a profession and your auction house at the top of the page. Everything else updates on its own.</p>
+      </div>
+      <div class="panel">
+        <h2>How profit is worked out</h2>
+        <code class="eq">profit = items made x sell price x (1 - auction house cut) - reagent cost</code>
+        <ul>
+          <li><b>Reagent prices</b> come from the auction house. If an item is not listed there, its vendor price is used.</li>
+          <li><b>Sell and buy prices</b> use the 25th percentile by default: the price at which the cheapest quarter of items for sale are available. It is steadier than the single lowest listing, which can be a one-off undercut. You can switch to Lowest or Median.</li>
+          <li><b>Return</b> is profit divided by reagent cost, so it shows how much you get back per gold spent.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h2>Using it well</h2>
+        <ul>
+          <li>Pick the right auction house. Prices differ between houses.</li>
+          <li>Set a minimum number of listings to avoid items that rarely sell.</li>
+          <li>Click any recipe to see each reagent and whether its price is from the auction house, a vendor or a hand-set value.</li>
+          <li>Untick "Hide recipes missing a price" to see recipes the data could not fully price.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h2>Good to know</h2>
+        <ul>
+          <li>Prices are hourly snapshots and can lag what you see in game.</li>
+          <li>Deposits are not included, and the auction house cut is an assumption you can change.</li>
+          <li>Blizzard has not published official documentation for WoW: Forever's data, so some items or recipes may be missing or change without notice.</li>
+          <li>Treat every number as an estimate and check the in-game auction house before you commit a lot of gold.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
 </main>
+
+<footer>
+  <div class="wrap">Suln is an unofficial fan-made tool. It is not affiliated with or endorsed by Blizzard Entertainment. World of Warcraft and related names are trademarks of their owners.</div>
+</footer>
+
 <script src="app.js"></script>
 </body>
 </html>
