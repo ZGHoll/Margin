@@ -847,12 +847,12 @@
       var entries = [];
       [1, 2, 3].forEach(function (n) {
         var id = byName[$("findItem" + n).value.trim().toLowerCase()];
-        var price = parseFloat($("findPrice" + n).value);
+        var price = (parseFloat($("findG" + n).value) || 0) + (parseFloat($("findS" + n).value) || 0) / 100 + (parseFloat($("findC" + n).value) || 0) / 10000;
         if (id && price > 0) entries.push({ itemId: id, price: price });
       });
       var out = $("findResults");
       out.textContent = "";
-      if (!entries.length) { out.appendChild(note("Pick at least one item from the list and enter its lowest price in gold.", "warn")); return; }
+      if (!entries.length) { out.appendChild(note("Pick at least one item from the list and enter its lowest price in gold, silver and copper.", "warn")); return; }
       var found = findHouses(data, entries).slice(0, 3);
       var clear = found.length > 1 && found[0].score < found[1].score * 0.6;
       out.appendChild(note(clear ? "Best match:" : "Closest matches (not a clear winner - add another item to be sure):", "hint"));
