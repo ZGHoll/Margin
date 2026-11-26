@@ -1,6 +1,24 @@
 {
   "region": "us",
   "ruleset": 2,
+  "rulesets": [
+    {
+      "id": 2,
+      "name": "Normal"
+    },
+    {
+      "id": 1,
+      "name": "PvP"
+    },
+    {
+      "id": 3,
+      "name": "Roleplay"
+    },
+    {
+      "id": 15,
+      "name": "Roleplay PvP"
+    }
+  ],
   "professions": [
     {
       "name": "Tailoring",

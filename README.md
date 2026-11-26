@@ -1,7 +1,7 @@
-# Crafter's Ledger
+# Margin
 
-A free website that ranks crafting recipes in **WoW: Forever** by profit and refreshes itself every hour.
-Pick a profession and your auction house, and the best crafts rise to the top.
+**Margin: crafting profits for WoW Forever.** A free website that ranks crafting recipes by profit and refreshes itself every hour.
+Pick a profession, realm type and auction house, and the best crafts rise to the top. (Formerly called Crafter's Ledger.)
 
 Live at **https://suln.live**. Built and run by Suln. It is an unofficial fan tool, not affiliated with or
 endorsed by Blizzard Entertainment.
@@ -24,6 +24,7 @@ Nothing runs on a PC. GitHub runs the hourly update for free and publishes the p
   visitor's own browser.
 - **Price history:** the hourly job saves a snapshot every 6 hours (kept for 28 days) for the default auction house.
   Charts appear in a recipe's details after a couple of days, with "Cheap right now" and "Expensive right now" tags.
+- **Realm types:** Normal, PvP, Roleplay and Roleplay PvP each have their own auction houses and prices. Visitors pick their realm type first, and the page remembers it.
 - **Auction house finder:** a one-time prompt asks visitors to confirm their auction house, with a finder that compares
   prices they see in game (gold, silver and copper) with every house. They can choose "Maybe later".
 - **Extras:** dark theme with a light/dark toggle, shareable links, a layout for phones, an About section,
@@ -33,7 +34,7 @@ Nothing runs on a PC. GitHub runs the hourly update for free and publishes the p
 
 1. `.github/workflows/update.yml` runs every hour and whenever you start it from the Actions tab.
 2. It runs `update_data.py`, which asks Blizzard's game data API for recipes, vendor prices and auction snapshots.
-3. The script writes `site/data.json` and `site/history.json`.
+3. The script writes `site/data.json` (recipes plus the default realm type's prices), `site/prices-1.json`, `prices-3.json` and so on for the other realm types, and `site/history.json`.
 4. The `site` folder is published to GitHub Pages. The page (`index.html` and `app.js`) reads the data in the visitor's browser.
 
 Recipes are saved for 24 hours so most runs are quick. The first run after adding professions can take 15 to 40 minutes.
@@ -57,7 +58,7 @@ Recipes are saved for 24 hours so most runs are quick. The first run after addin
 You need a free GitHub account and your Blizzard API **Client ID** and **Client Secret**
 (from https://develop.battle.net/access/clients).
 
-1. **Create the repository.** On github.com click **+**, then **New repository**. Name it (for example `crafters-ledger`) and choose **Public**
+1. **Create the repository.** On github.com click **+**, then **New repository**. Name it (for example `margin`) and choose **Public**
    (free GitHub Pages needs a public repository).
 2. **Upload the files.** Click **uploading an existing file** and drag in everything from this folder, including the `site` folder.
    Commit the changes.
@@ -93,11 +94,12 @@ It replaces the old one.
 | Setting | What it does |
 |---|---|
 | `region` | `us`, `eu`, `kr` or `tw`. |
-| `ruleset` | 1 = PvP, 2 = Normal, 3 = Roleplay, 15 = Roleplay PvP (US and EU). |
+| `ruleset` | The realm type the page opens on: 1 = PvP, 2 = Normal, 3 = Roleplay, 15 = Roleplay PvP (US and EU). |
+| `rulesets` | Every realm type to download, each with an `id` and a `name`. Visitors pick one on the page. A realm type with no data is skipped with a warning in the log, and the others still publish. |
 | `professions` | The professions to track, each with a `name` and a `fallback_id`. Currently Tailoring 197, Blacksmithing 164, Alchemy 171, Enchanting 333, Engineering 202, Leatherworking 165 and Cooking 185. |
 | `ah_cut` | Auction house cut as a decimal. 0.05 is 5% (faction houses). Neutral houses (Gadgetzan, Booty Bay, Everlook) take 15%. Visitors can change it on the page. |
 | `default_house` | The house the page opens on. `null` picks the house with the most data. |
-| `house_labels` | Friendly names for house IDs, for example `"113": "US Horde PvP"`. They appear in the dropdown. |
+| `house_labels` | Friendly names for house IDs, for example `"113": "US Horde"`. A plain ID labels the default realm type. Use `"1:113"` for house 113 in realm type 1 (PvP). They appear in the dropdown. |
 | `history` | `enabled`, `hours_between_points` (default 6) and `days` (default 28). |
 | `discord` | `enabled` (default `false`), `top_n` and `hours_between_posts`. |
 | `site_url` | Used in the Discord post. |
