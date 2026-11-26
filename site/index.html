@@ -6,9 +6,9 @@
 <meta name="color-scheme" content="dark light">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="description" content="Hourly crafting profit rankings for WoW: Forever. Pick a profession and an auction house to see the most profitable crafts.">
+<meta name="description" content="Margin: crafting profits for WoW Forever. Hourly rankings of the most profitable crafts for every profession, realm type and auction house. A free tool by Suln.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<title>Crafter's Ledger - WoW: Forever profit rankings</title>
+<title>Margin - WoW Forever crafting profits</title>
 <style>
   :root {
     --bg0: #07090f; --bg1: #0d1018; --panel: #131724; --panel2: #1a2033; --line: #2a3250; --line2: #3a4468;
@@ -58,7 +58,7 @@
   /* ---------- hero ---------- */
   .hero { text-align: center; padding: 34px 0 10px; }
   .hero h1 { font: 700 clamp(1.5rem, 4.2vw, 2.3rem)/1.15 var(--serif); letter-spacing: 0.04em; margin: 0 0 8px;
-    background: linear-gradient(180deg, var(--gold-hi), var(--gold) 60%, var(--gold-lo)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    color: var(--gold-hi); text-shadow: 0 2px 22px rgba(214, 178, 106, 0.28); }
   .hero p { margin: 0 auto; max-width: 620px; color: var(--muted); }
   .status { display: inline-flex; align-items: center; gap: 10px; font-size: 1rem; color: var(--text);
     padding: 9px 18px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }
@@ -187,6 +187,8 @@
   .select-wrap .caret { position: absolute; right: 0; top: 0; bottom: 0; width: 50px; display: grid; place-items: center; pointer-events: none;
     background: linear-gradient(180deg, var(--gold-hi), var(--gold)); border-radius: 0 8px 8px 0; margin: 2px; color: #1a1405; }
   .select-wrap .caret svg { width: 18px; height: 18px; }
+  .picker-row.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 1000px) { .picker-row.three { grid-template-columns: repeat(2, minmax(0, 1fr)); } .picker-row.three > :last-child { grid-column: 1 / -1; } }
   .house-select select { font-size: 1rem; border-width: 1px; border-color: var(--line2); padding-left: 14px; min-height: 58px; }
   .house-select .caret { background: var(--panel2); color: var(--gold-hi); border: 1px solid var(--line2); border-left: 0; margin: 1px; }
   .picker-hint { margin: 10px 0 0; color: var(--muted); font-size: 0.84rem; display: block; text-align: center; }
@@ -261,6 +263,10 @@
   .kofi-card { display: flex; flex-direction: column; align-items: flex-start; }
   .kofi-card > h2 { align-self: stretch; }
   .kofi-card > .kofi { align-self: center; }
+  .more-wrap { text-align: center; margin: 16px 0 6px; }
+  .more-wrap p { margin: 0 0 10px; color: var(--muted); font-size: .88rem; }
+  .more-btn { padding: 9px 18px; border-radius: 8px; border: 1px solid var(--gold-hi); background: rgba(255,255,255,.04); color: var(--gold-hi); font: inherit; font-weight: 600; cursor: pointer; }
+  .more-btn:hover, .more-btn:focus-visible { background: rgba(255,255,255,.1); }
   .kofi { display: inline-flex; align-items: center; gap: 10px; margin-top: 6px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--gold-hi); background: rgba(255,255,255,.04); color: var(--gold-hi); font-weight: 600; text-decoration: none; transition: background .15s; }
   .kofi:hover, .kofi:focus-visible { background: rgba(255,255,255,.1); }
   .kofi svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
@@ -270,7 +276,8 @@
   footer .wrap { border-top: 1px solid var(--line); padding-top: 18px; }
 
   @media (max-width: 760px) {
-    .picker-row { grid-template-columns: 1fr; }
+    .picker-row, .picker-row.three { grid-template-columns: 1fr; }
+    .picker-row.three > :last-child { grid-column: auto; }
     .toolbar { grid-template-columns: 1fr 1fr; }
     .toolbar .grow { grid-column: 1 / -1; }
     .podium { grid-template-columns: 1fr; }
@@ -297,13 +304,14 @@
 
 <header class="topbar">
   <div class="wrap">
-    <a class="brand" href="#top" aria-label="Crafter's Ledger home">
+    <a class="brand" href="#top" aria-label="Margin home">
       <svg viewBox="0 0 30 34" aria-hidden="true">
-        <path d="M15 1.5 28 6v10.5c0 8.2-5.4 13.3-13 16-7.6-2.7-13-7.8-13-16V6z" fill="#10131c" stroke="#d6b26a" stroke-width="1.5"/>
-        <path d="M8 12h14c0 2.8-1.7 4.4-4.4 4.9V20h3v2.6H9.4V20h3v-3.1C9.7 16.4 8 14.800 8 12z" fill="#f3dc9a"/>
-        <path d="M15 4.2l1 2.1 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.300L11.700 6.600l2.300-.3z" fill="#8798ff" opacity=".9"/>
+        <defs><linearGradient id="crest" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1d58c"/><stop offset="1" stop-color="#b98f3c"/></linearGradient></defs>
+        <path d="M15 1.5 28 6v10.5c0 8.2-5.4 13.3-13 16-7.6-2.7-13-7.8-13-16V6z" fill="url(#crest)" stroke="#7a5a1c" stroke-width="1.5"/>
+        <path d="M8 12h14c0 2.8-1.7 4.4-4.4 4.9V20h3v2.6H9.4V20h3v-3.1C9.7 16.4 8 14.8 8 12z" fill="#1a1408"/>
+        <path d="M15 4.2l1 2.1 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.3L11.7 6.6l2.3-.3z" fill="#1a1408"/>
       </svg>
-      <span><b>CRAFTER'S LEDGER</b><small>A tool by Suln</small></span>
+      <span><b>MARGIN</b><small>A tool by Suln</small></span>
     </a>
     <nav aria-label="Main">
       <a href="#about">About</a>
@@ -316,7 +324,7 @@
 <main class="wrap" id="top">
   <section class="hero">
     <h1 id="title">WoW: Forever crafting profits</h1>
-    <p>Your hourly guide to the most profitable crafts in WoW: Forever. Pick a profession and your auction house, and the best recipes rise to the top.</p>
+    <p><b>Margin</b> - crafting profits for WoW: Forever. Your hourly guide to the most profitable crafts. Pick a profession, realm type and auction house, and the best recipes rise to the top.</p>
     <div class="hero-meta">
       <div id="updatedBox" class="status"><span class="dot"></span><span id="updated">Loading prices...</span></div>
       <a class="howlink" href="#about">How it works <span aria-hidden="true">&darr;</span></a>
@@ -326,7 +334,7 @@
 
   <div class="divider" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M9 1l2.600 6.400L18 9l-6.400 2.600L9 18l-2.600-6.400L0 9l6.400-1.600z" fill="currentColor"/></svg></div>
 
-  <section class="panel picker" aria-label="Choose profession and auction house">
+  <section class="panel picker" aria-label="Choose profession, realm type and auction house">
     <div class="picker-row">
       <div>
         <div class="picker-label"><span class="step">1</span> Choose a profession</div>
@@ -339,8 +347,16 @@
         </div>
         <p class="picker-hint" id="profHint"></p>
       </div>
+      <div id="rulesetBlock" hidden>
+          <div class="picker-label"><span class="step">2</span> Choose your realm type</div>
+          <div class="select-wrap house-select">
+            <select id="ruleset" aria-label="Realm type"></select>
+            <span class="caret" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M3 6l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </div>
+          <p class="picker-hint" id="rulesetHint">Each realm type has its own prices.</p>
+        </div>
       <div>
-        <div class="picker-label"><span class="step">2</span> Choose your auction house</div>
+        <div class="picker-label" id="houseLabelRow"><span class="step" id="houseStep">2</span> Choose your auction house</div>
         <div class="select-wrap house-select">
           <select id="house" aria-label="Auction house"></select>
           <span class="caret" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M3 6l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -436,6 +452,7 @@
       <tbody id="rows"></tbody>
     </table>
   </div>
+  <div id="rankMore" class="more-wrap" hidden></div>
   <p class="hint">Click a recipe to see its reagents and where each price came from. "Scarce" and "thin market" mean fewer than 3 items are listed, so the price may not hold. Estimates only: deposits are not included.</p>
 
   </div>
@@ -464,11 +481,11 @@
   <div class="divider" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M9 1l2.600 6.400L18 9l-6.400 2.600L9 18l-2.600-6.400L0 9l6.400-1.600z" fill="currentColor"/></svg></div>
 
   <section id="about" aria-labelledby="aboutTitle">
-    <h2 id="aboutTitle" style="font:700 1.3rem var(--serif);letter-spacing:.12em;color:var(--gold-hi);text-align:center;margin:0 0 16px">About Crafter's Ledger</h2>
+    <h2 id="aboutTitle" style="font:700 1.3rem var(--serif);letter-spacing:.12em;color:var(--gold-hi);text-align:center;margin:0 0 16px">About Margin</h2>
     <div class="about-grid">
       <div class="panel">
         <h2>What this is</h2>
-        <p>Crafter's Ledger ranks crafting recipes in WoW: Forever by how much gold each craft is expected to earn. It reads auction house prices every hour, works out what a craft costs to make and what the result sells for, and lists the best ones first.</p>
+        <p>Margin ranks crafting recipes in WoW: Forever by how much gold each craft is expected to earn. It reads auction house prices every hour, works out what a craft costs to make and what the result sells for, and lists the best ones first.</p>
         <p>Choose a profession and your auction house at the top of the page. Everything else updates on its own.</p>
         <p>It's a free community tool, built and kept running by Suln.</p>
       </div>
@@ -484,7 +501,7 @@
       <div class="panel">
         <h2>Using it well</h2>
         <ul>
-          <li>Pick the right auction house. Prices differ between houses.</li>
+          <li>Pick your realm type (Normal, PvP, Roleplay or Roleplay PvP) and the right auction house. Prices differ between them.</li>
           <li>Set a minimum number of listings to avoid items that rarely sell.</li>
           <li>Click any recipe to see each reagent and whether its price is from the auction house, a vendor or a hand-set value.</li>
           <li>Untick "Hide recipes missing a price" to see recipes the data could not fully price.</li>
@@ -501,7 +518,7 @@
       </div>
       <div class="panel">
         <h2>Made by Suln</h2>
-        <p>Crafter's Ledger is a free tool made by Suln. Come tell him he's bald.</p>
+        <p>Margin is a free tool made by Suln. Come tell him he's bald.</p>
         <div class="socials">
           <a class="social" href="https://worldofwarcraft.blizzard.com/en-us/forever/us/armory/character/su-ln" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.400 9.300 8 11 4.600-1.700 8-6 8-11V5z"/></svg><span>Su-ln</span><small>WoW Forever armory</small></a>
           <a class="social" href="https://x.com/Zgholl" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 2.5h3.3l-7.2 8.3 8.5 10.7h-6.7l-5.2-6.6-5.9 6.6H1.7l7.7-8.8L1.3 2.5h6.8l4.7 6.1zm-1.2 16.9h1.8L7.1 4.4H5.2z"/></svg><span>X</span><small>@Zgholl</small></a>
@@ -511,7 +528,7 @@
       </div>
       <div class="panel kofi-card">
         <h2>Support the tool</h2>
-        <p>Crafter's Ledger is free to use. If it saves you gold, spend it on me. It won't grow my hair back, but it'll make me feel good.</p>
+        <p>Margin is free to use. If it saves you gold, spend it on me. It won't grow my hair back, but it'll make me feel good.</p>
         <a class="kofi" href="https://ko-fi.com/sulntv" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zm13 1.500h1.500a2.500 2.500 0 0 1 0 5H17v-1.700h1.500a.8.800 0 0 0 0-1.600H17zM6 21h9v1.500H6z"/></svg>Buy me a Ko-fi</a>
       </div>
     </div>
@@ -520,7 +537,7 @@
 </main>
 
 <footer>
-  <div class="wrap">Crafter's Ledger, a free tool by Suln, is an unofficial fan-made tool. It is not affiliated with or endorsed by Blizzard Entertainment. World of Warcraft and related names are trademarks of their owners. <a id="feedbackLink" href="#" hidden>Report a bug or suggest an idea</a></div>
+  <div class="wrap">Margin, a free tool by Suln, is an unofficial fan-made tool. It is not affiliated with or endorsed by Blizzard Entertainment. World of Warcraft and related names are trademarks of their owners. <a id="feedbackLink" href="#" hidden>Report a bug or suggest an idea</a></div>
 </footer>
 
 <script src="app.js"></script>

@@ -256,6 +256,7 @@
   var historyPromise = null;
   var activeTab = "rank";
   var houseConfirmed = false;
+  var rulesetData = {}, activeRuleset = null, baseRuleset = null, confirmedMap = {}, houseMap = {}, finderNames = {};
   var houseSnoozed = false;
   var TABS = ["rank", "list", "cvb", "cons", "lvl"];
 
@@ -299,6 +300,9 @@
       favOnly: $("favOnly").checked,
       tab: activeTab,
       houseConfirmed: houseConfirmed,
+      ruleset: activeRuleset,
+      houses: (houseMap[activeRuleset] = $("house").value, houseMap),
+      confirmed: (confirmedMap[activeRuleset] = houseConfirmed, confirmedMap),
     };
   }
 
@@ -321,6 +325,49 @@
     return h ? houseLabel(h) : "house " + id;
   }
   var RULESETS = { 1: "PvP", 2: "Normal", 3: "Roleplay", 15: "Roleplay PvP" };
+  function rulesetName(id) {
+    var r = (data.rulesets || []).filter(function (x) { return String(x.id) === String(id); })[0];
+    return r ? r.name : (RULESETS[id] || "ruleset " + id);
+  }
+  function applyRuleset(rd) {
+    data.ruleset = rd.ruleset;
+    data.houses = rd.houses;
+    data.prices = rd.prices;
+    data.default_house = rd.default_house;
+    activeRuleset = rd.ruleset;
+  }
+  function loadRuleset(id) {
+    if (rulesetData[id]) return Promise.resolve(rulesetData[id]);
+    return fetch("prices-" + id + ".json?v=" + Date.now())
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (rd) { rd.ruleset = id; rulesetData[id] = rd; return rd; });
+  }
+  function fillHouses(preferred) {
+    var sel = $("house");
+    sel.textContent = "";
+    data.houses.forEach(function (h) {
+      var option = el("option", houseLabel(h));
+      option.value = String(h.id);
+      sel.appendChild(option);
+    });
+    sel.value = preferred && data.prices[String(preferred)] ? String(preferred) : String(data.default_house);
+  }
+  function buildFinder() {
+    $("rulesetLine").textContent = "This page shows " + String(data.region || "us").toUpperCase() + " " + rulesetName(data.ruleset) +
+      " auction houses (" + data.houses.length + " of them).";
+    finderNames = {};
+    var datalist = $("findItems");
+    datalist.textContent = "";
+    Object.keys(data.names || {}).forEach(function (id) {
+      var anyPrice = data.houses.some(function (h) { return data.prices[String(h.id)] && data.prices[String(h.id)][id]; });
+      if (!anyPrice) return;
+      finderNames[data.names[id].toLowerCase()] = id;
+      var o = document.createElement("option");
+      o.value = data.names[id];
+      datalist.appendChild(o);
+    });
+    $("findResults").textContent = "";
+  }
   function pct(v) { return v === null || v === undefined ? "-" : Math.round(v * 100) + "%"; }
 
   // Builds a table; returns { wrap, tbody }. cols: [{label, num, hideSm}]
@@ -478,6 +525,11 @@
         box.appendChild(note("History is still building. Charts appear after a couple of days of hourly updates."));
         return;
       }
+      var histRuleset = h.ruleset !== undefined ? Number(h.ruleset) : baseRuleset;
+      if (histRuleset !== activeRuleset) {
+        box.appendChild(note("History is only recorded for " + rulesetName(histRuleset) + " realms, so there are no charts for " + rulesetName(activeRuleset) + " yet."));
+        return;
+      }
       if (String(h.house) !== String(s.house)) box.appendChild(note("History is only recorded for " + houseName(h.house) + ", so these charts show that house."));
       var shown = 0;
       items.forEach(function (it) {
@@ -512,6 +564,8 @@
     return card;
   }
 
+  var RANK_PAGE = 50, rankLimit = RANK_PAGE, rankSig = "";
+
   function renderRank(s) {
     var rows = computeRows(data, s);
     rows.forEach(function (r, i) { r.rank = i + 1; r.key = s.profession + ":" + r.id; });
@@ -529,7 +583,15 @@
 
     if (s.favOnly) rows = rows.filter(function (r) { return favs[r.key]; });
     rows = rows.filter(function (r) { return favs[r.key]; }).concat(rows.filter(function (r) { return !favs[r.key]; }));
-    $("summary").textContent = rows.length + " recipes shown" +
+    var sig = JSON.stringify(s);
+    if (sig !== rankSig) { rankSig = sig; rankLimit = RANK_PAGE; }
+    var pinned = rows.filter(function (r) { return favs[r.key]; });
+    var others = rows.filter(function (r) { return !favs[r.key]; });
+    var showAll = !!(s.search || "").trim() || s.favOnly;
+    var visible = showAll ? rows : pinned.concat(others.slice(0, rankLimit));
+    var hiddenCount = rows.length - visible.length;
+    $("summary").textContent = rows.length + (rows.length === 1 ? " recipe" : " recipes") +
+      (hiddenCount > 0 ? " - showing " + visible.length : "") +
       (incomplete ? " - " + incomplete + " recipes in total are missing a price" : "") +
       (Object.keys(favs).length ? " - favorites are pinned to the top" : "");
 
@@ -544,7 +606,18 @@
       body.appendChild(emptyRow);
     }
 
-    rows.forEach(function (r) {
+    var more = $("rankMore");
+    more.textContent = "";
+    more.hidden = hiddenCount <= 0;
+    if (hiddenCount > 0) {
+      more.appendChild(el("p", "Showing " + visible.length + " of " + rows.length + " recipes. Not seeing the recipe you're looking for? Search for it in the bar above."));
+      more.appendChild(button("Show " + Math.min(RANK_PAGE, hiddenCount) + " more", "more-btn", function () {
+        rankLimit += RANK_PAGE;
+        render();
+      }));
+    }
+
+    visible.forEach(function (r) {
       var tr = el("tr", null, "main");
       tr.tabIndex = 0;
       tr.setAttribute("aria-expanded", "false");
@@ -752,7 +825,7 @@
   // ---- main render
   function render() {
     var s = currentSettings();
-    document.title = "Crafter's Ledger - " + s.profession + " profits in WoW: Forever";
+    document.title = "Margin - " + s.profession + " profits in WoW: Forever";
     $("title").textContent = s.profession + " profits in WoW: Forever";
     $("profIcon").innerHTML = iconFor(s.profession);
     renderHint();
@@ -764,7 +837,7 @@
     syncUrl(s);
     updateListCount();
     $("houseNotice").hidden = houseConfirmed || houseSnoozed;
-    $("houseNoticeName").textContent = houseName(s.house);
+    $("houseNoticeName").textContent = houseName(s.house) + ((data.rulesets || []).length > 1 ? " (" + rulesetName(activeRuleset) + ")" : "");
     TABS.forEach(function (t) {
       $("tab-" + t).hidden = t !== activeTab;
       var b = document.querySelector('[data-tab="' + t + '"]');
@@ -779,7 +852,7 @@
   }
 
   function syncUrl(s) {
-    try { history.replaceState(null, "", "#p=" + encodeURIComponent(s.profession) + "&h=" + encodeURIComponent(s.house) + "&t=" + activeTab); } catch (e) { /* ignore */ }
+    try { history.replaceState(null, "", "#p=" + encodeURIComponent(s.profession) + "&r=" + encodeURIComponent(activeRuleset) + "&h=" + encodeURIComponent(s.house) + "&t=" + activeTab); } catch (e) { /* ignore */ }
   }
   function readHash() {
     var out = {};
@@ -813,14 +886,50 @@
   function init() {
     var saved = loadSettings();
     var hash = readHash();
-    var houseSelect = $("house");
-    data.houses.forEach(function (h) {
-      var option = el("option", houseLabel(h));
-      option.value = String(h.id);
-      houseSelect.appendChild(option);
-    });
-    if (hash.h && data.prices[hash.h]) saved.house = hash.h;
-    houseSelect.value = saved.house && data.prices[saved.house] ? saved.house : String(data.default_house);
+    houseMap = Object.assign({}, saved.houses || {});
+    confirmedMap = Object.assign({}, saved.confirmed || {});
+    if (!saved.houses && saved.house) houseMap[baseRuleset] = saved.house;
+    if (saved.houseConfirmed && !saved.confirmed) confirmedMap[baseRuleset] = true;
+    if (hash.h && (!hash.r || String(hash.r) === String(activeRuleset)) && data.prices[hash.h]) houseMap[activeRuleset] = hash.h;
+    fillHouses(houseMap[activeRuleset]);
+
+    var rsList = data.rulesets || [];
+    if (rsList.length > 1) {
+      rsList.forEach(function (r) {
+        var option = el("option", r.name);
+        option.value = String(r.id);
+        $("ruleset").appendChild(option);
+      });
+      $("ruleset").value = String(activeRuleset);
+      $("rulesetBlock").hidden = false;
+      document.querySelector(".picker-row").classList.add("three");
+      $("houseStep").textContent = "3";
+      $("ruleset").addEventListener("change", function () {
+        var sel = $("ruleset"), id = parseInt(sel.value, 10);
+        houseMap[activeRuleset] = $("house").value;
+        confirmedMap[activeRuleset] = houseConfirmed;
+        sel.disabled = true;
+        loadRuleset(id).then(function (rd) {
+          applyRuleset(rd);
+          fillHouses(houseMap[id]);
+          houseConfirmed = !!confirmedMap[id];
+          buildFinder();
+          rankLimit = RANK_PAGE;
+          sel.disabled = false;
+          render();
+        }).catch(function () {
+          sel.value = String(activeRuleset);
+          sel.disabled = false;
+          var box = $("errors");
+          box.textContent = "Could not load prices for that realm type right now. Try again in a minute.";
+          box.hidden = false;
+          setTimeout(function () {
+            if (data.errors && data.errors.length) box.textContent = "Some data could not be loaded and is missing from this page: " + data.errors.join(" | ");
+            else box.hidden = true;
+          }, 6000);
+        });
+      });
+    }
 
     var professionSelect = $("profession");
     var names = professionNames();
@@ -834,7 +943,7 @@
     fillTiers(professionSelect.value, saved.tier);
     buildProfMenu();
 
-    houseConfirmed = !!saved.houseConfirmed;
+    houseConfirmed = !!confirmedMap[activeRuleset];
     try { houseSnoozed = sessionStorage.getItem("forever-house-later") === "1"; } catch (e) { /* ignore */ }
     var wantTab = hash.t || saved.tab;
     activeTab = TABS.indexOf(wantTab) !== -1 ? wantTab : "rank";
@@ -884,17 +993,7 @@
     $("findHouseBtn").addEventListener("click", openFinder);
     $("houseLinkBtn").addEventListener("click", openFinder);
     $("closeFinder").addEventListener("click", function () { $("houseHelp").open = false; $("houseLinkBtn").focus(); });
-    $("rulesetLine").textContent = "This page shows " + String(data.region || "us").toUpperCase() + " " + (RULESETS[data.ruleset] || "ruleset " + data.ruleset) +
-      " auction houses (" + data.houses.length + " of them).";
-    var byName = {}, datalist = $("findItems");
-    Object.keys(data.names || {}).forEach(function (id) {
-      var anyPrice = data.houses.some(function (h) { return data.prices[String(h.id)] && data.prices[String(h.id)][id]; });
-      if (!anyPrice) return;
-      byName[data.names[id].toLowerCase()] = id;
-      var o = document.createElement("option");
-      o.value = data.names[id];
-      datalist.appendChild(o);
-    });
+    buildFinder();
     [1, 2, 3].forEach(function (n) {
       var box = $("findItem" + n);
       box.addEventListener("click", function () {
@@ -904,7 +1003,7 @@
     $("findBtn").addEventListener("click", function () {
       var entries = [];
       [1, 2, 3].forEach(function (n) {
-        var id = byName[$("findItem" + n).value.trim().toLowerCase()];
+        var id = finderNames[$("findItem" + n).value.trim().toLowerCase()];
         var price = (parseFloat($("findG" + n).value) || 0) + (parseFloat($("findS" + n).value) || 0) / 100 + (parseFloat($("findC" + n).value) || 0) / 10000;
         if (id && price > 0) entries.push({ itemId: id, price: price });
       });
@@ -953,7 +1052,19 @@
 
   fetch("data.json?v=" + Date.now())
     .then(function (response) { if (!response.ok) throw new Error("HTTP " + response.status); return response.json(); })
-    .then(function (json) { data = json; init(); })
+    .then(function (json) {
+      data = json;
+      baseRuleset = data.ruleset;
+      activeRuleset = data.ruleset;
+      rulesetData[data.ruleset] = { ruleset: data.ruleset, houses: data.houses, prices: data.prices, default_house: data.default_house };
+      var saved = loadSettings(), hash = readHash();
+      var want = parseInt(hash.r || saved.ruleset, 10);
+      var known = (data.rulesets || []).some(function (r) { return r.id === want; });
+      if (known && want !== data.ruleset) {
+        return loadRuleset(want).then(applyRuleset).catch(function () { /* stay on the default realm type */ });
+      }
+    })
+    .then(function () { init(); })
     .catch(function (err) {
       $("updated").textContent = "Could not load the price data (" + err.message + "). If this page was just set up, wait for the first update to finish.";
       $("updatedBox").className = "status stale";
