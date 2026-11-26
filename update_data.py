@@ -32,6 +32,7 @@ SITE_DIR = ROOT / "site"
 COPPER_PER_GOLD = 10000
 DELAY = 0.1  # seconds between small requests
 MAX_REAGENTS = 12
+RULESET_NAMES = {1: "PvP", 2: "Normal", 3: "Roleplay", 15: "Roleplay PvP"}
 
 
 class UpdateError(Exception):
@@ -316,10 +317,18 @@ def update_history(config, data):
         return
     gap = float(settings.get("hours_between_points", 6)) * 3600
     max_points = max(2, int(float(settings.get("days", 28)) * 24 * 3600 / gap))
+    if data.get("default_fallback"):
+        # The usual default realm type failed this run. Keep the saved history as it is rather than restarting it.
+        if HISTORY_FILE.exists():
+            save_json(SITE_DIR / "history.json", load_json(HISTORY_FILE, {}))
+        return
     house = str(data["default_house"])
+    ruleset = int(data.get("ruleset", 2))
     hist = load_json(HISTORY_FILE, {}) or {}
-    if hist.get("house") != house or not isinstance(hist.get("times"), list) or not isinstance(hist.get("items"), dict):
+    if (hist.get("house") != house or hist.get("ruleset", ruleset) != ruleset
+            or not isinstance(hist.get("times"), list) or not isinstance(hist.get("items"), dict)):
         hist = {"house": house, "times": [], "items": {}}
+    hist["ruleset"] = ruleset
     now = int(time.time())
     if not hist["times"] or now - hist["times"][-1] >= gap - 600:
         count = len(hist["times"])
@@ -421,8 +430,8 @@ def maybe_post_discord(config, data):
     }
     if config.get("site_url"):
         embed["url"] = config["site_url"]
-    body = json.dumps({"username": "Crafter's Ledger", "embeds": [embed]}).encode()
-    request = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json", "User-Agent": "crafters-ledger"})
+    body = json.dumps({"username": "Margin", "embeds": [embed]}).encode()
+    request = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json", "User-Agent": "margin-wow"})
     try:
         with urllib.request.urlopen(request, timeout=30):
             pass
@@ -473,7 +482,23 @@ def main():
     reagent_ids = {r["id"] for recipe in all_recipes for r in recipe["reagents"]}
     output_ids = {recipe["item_id"] for recipe in all_recipes if recipe["item_id"]}
     vendor = get_vendor_prices(token, region, config, sorted(reagent_ids))
-    prices, houses = get_auction_prices(token, region, ruleset, reagent_ids | output_ids)
+    wanted = reagent_ids | output_ids
+    ruleset_list = config.get("rulesets") or [{"id": ruleset, "name": RULESET_NAMES.get(ruleset, f"Ruleset {ruleset}")}]
+    results, ruleset_names = {}, {}
+    for entry in ruleset_list:
+        rid = int(entry["id"] if isinstance(entry, dict) else entry)
+        rname = (entry.get("name") if isinstance(entry, dict) else None) or RULESET_NAMES.get(rid, f"Ruleset {rid}")
+        try:
+            results[rid] = get_auction_prices(token, region, rid, wanted)
+            ruleset_names[rid] = rname
+        except UpdateError as err:  # a ruleset that has no data must not stop the others
+            print(f"WARNING: {rname} (ruleset {rid}) skipped: {err}", file=sys.stderr)
+    if not results:
+        raise UpdateError("No auction house data could be loaded for any ruleset. Check 'region' and 'rulesets' in config.json.")
+    default_rs = int(ruleset) if int(ruleset) in results else next(iter(results))
+    fell_back = default_rs != int(ruleset)
+    ruleset = default_rs
+    prices, houses = results[default_rs]
 
     names = {}
     for recipe in all_recipes:
@@ -484,17 +509,26 @@ def main():
             names[str(recipe["item_id"])] = recipe["item"]
 
     labels = config.get("house_labels") or {}
-    for h in houses:
-        if labels.get(str(h["id"])):
-            h["label"] = str(labels[str(h["id"])])
 
+    def apply_labels(rid, house_list):
+        # "113" labels the default ruleset; "1:113" labels house 113 in ruleset 1.
+        for h in house_list:
+            label = labels.get(f"{rid}:{h['id']}") or (labels.get(str(h["id"])) if rid == default_rs else None)
+            if label:
+                h["label"] = str(label)
+
+    apply_labels(default_rs, houses)
     default_house = config.get("default_house") or max(houses, key=lambda h: h["items"])["id"]
+    if not any(h["id"] == default_house for h in houses):
+        default_house = max(houses, key=lambda h: h["items"])["id"]
     data = {
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "region": region,
         "ruleset": ruleset,
         "ah_cut": config.get("ah_cut", 0.05),
         "default_house": default_house,
+        "default_fallback": fell_back,
+        "rulesets": [{"id": rid, "name": ruleset_names[rid], "houses": len(results[rid][1])} for rid in results],
         "houses": houses,
         "professions": profession_data,
         "errors": errors,
@@ -506,13 +540,25 @@ def main():
     }
     SITE_DIR.mkdir(exist_ok=True)
     save_json(SITE_DIR / "data.json", data)
+    for rid, (rs_prices, rs_houses) in results.items():
+        if rid == default_rs:
+            continue
+        apply_labels(rid, rs_houses)
+        save_json(SITE_DIR / f"prices-{rid}.json", {
+            "ruleset": rid,
+            "updated": data["updated"],
+            "default_house": max(rs_houses, key=lambda h: h["items"])["id"],
+            "houses": rs_houses,
+            "prices": rs_prices,
+        })
     for step in (update_history, maybe_post_discord):
         try:
             step(config, data)
         except Exception as err:  # extras must never stop the site from updating
             print(f"WARNING: {step.__name__} failed: {err}", file=sys.stderr)
     summary = ", ".join(f"{p['name']} {len(p['recipes'])}" for p in profession_data)
-    print(f"Done: {summary} recipes, {len(houses)} auction houses with data. Wrote site/data.json")
+    realm = ", ".join(f"{ruleset_names[rid]} {len(results[rid][1])}" for rid in results)
+    print(f"Done: {summary} recipes. Auction houses with data: {realm}. Wrote site/data.json")
 
 
 if __name__ == "__main__":
