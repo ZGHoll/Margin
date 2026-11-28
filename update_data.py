@@ -249,9 +249,10 @@ def apply_skill_requirements(profession_data, config):
     """Adds recipe['skill'] (profession skill needed) and recipe['skill_note'] ('unconfirmed' when the
     value was borrowed from Vanilla). Data: LibProfessionDB (MIT licence), see skill_requirements.json."""
     table = load_json(ROOT / "skill_requirements.json", {}) or {}
+    confirmed = ((load_json(ROOT / "skill_overrides.json", {}) or {}).get("recipes")) or {}
     by_profession = table.get("professions") or {}
     ids = {p["name"].lower(): p.get("fallback_id") for p in professions_from_config(config)}
-    total = matched = 0
+    total = matched = overridden = 0
     methods = {"id": 0, "item": 0, "name": 0}
     for profession in profession_data:
         known = by_profession.get(str(ids.get(profession["name"].lower()))) or {}
@@ -266,18 +267,26 @@ def apply_skill_requirements(profession_data, config):
             total += 1
             recipe.pop("skill", None)
             recipe.pop("skill_note", None)
-            rec, how = None, ""
+            rec, how, spell = None, "", None
             # Blizzard recipe ids are not always the library's spell ids, so an id match only counts
             # when the crafted item or the name agrees too.
             if recipe.get("item_id") and by_item.get(recipe["item_id"]):
-                rec, how = known.get(str(by_item[recipe["item_id"]])), "item"
-            if rec is None and by_name.get(normalize_name(recipe["name"])):
-                rec, how = known.get(str(by_name[normalize_name(recipe["name"])])), "name"
-            if rec is None:
+                spell, how = by_item[recipe["item_id"]], "item"
+            if spell is None and by_name.get(normalize_name(recipe["name"])):
+                spell, how = by_name[normalize_name(recipe["name"])], "name"
+            if spell is None:
                 same_id = known.get(str(recipe["id"]))
                 if same_id and ((recipe.get("item_id") and same_id.get("i") == recipe["item_id"])
                                 or normalize_name(same_id.get("n", "")) == normalize_name(recipe["name"])):
-                    rec, how = same_id, "id"
+                    spell, how = recipe["id"], "id"
+            rec = known.get(str(spell)) if spell is not None else None
+            fixed = confirmed.get(str(spell)) if spell is not None else None
+            if rec is not None and isinstance(fixed, dict) and fixed.get("skill"):
+                matched += 1
+                overridden += 1
+                methods[how] += 1
+                recipe["skill"] = int(fixed["skill"])  # confirmed in game: no "unconfirmed" note
+                continue
             if rec is None or not rec.get("s"):
                 continue
             matched += 1
@@ -286,7 +295,8 @@ def apply_skill_requirements(profession_data, config):
             if rec.get("k") in ("borrowed", "approx"):
                 recipe["skill_note"] = "unconfirmed"
     print(f"Skill requirements found for {matched} of {total} recipes "
-          f"(matched by recipe id {methods['id']}, by crafted item {methods['item']}, by name {methods['name']}).")
+          f"(matched by recipe id {methods['id']}, by crafted item {methods['item']}, by name {methods['name']}). "
+          f"{overridden} confirmed in game.")
 
 
 # ----------------------------------------------------------------------------
