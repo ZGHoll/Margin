@@ -164,6 +164,7 @@
   details.finder { margin-top: 14px; border-top: 1px dashed var(--line2); padding-top: 10px; }
   details.finder:not([open]) { display: none; }
   .toolbar { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: end; margin-bottom: 16px; }
+  .toolbar.four { grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); }
   .toolbar[hidden] { display: none; }
   .toolbar .field[hidden] { display: none; }
   details.adv { grid-column: 1 / -1; }
@@ -422,7 +423,8 @@
 
   <div class="toolbar" id="toolbar">
     <label class="field grow">Search recipes <input id="search" type="search" placeholder="Recipe name"></label>
-    <label class="field">Skill tier <select id="tier"><option value="">All</option></select></label>
+    <label class="field" id="tierField" hidden>Skill tier <select id="tier"><option value="">All</option></select></label>
+    <label class="field" id="skillField">My skill (hides crafts above it) <input id="maxSkill" type="number" min="0" max="300" step="1" placeholder="Show all"></label>
     <label class="field" id="rankField">Rank by
       <select id="rankBy"><option value="profit">Profit per craft</option><option value="roi">Return on cost (%)</option><option value="depth">Most listed (market depth)</option></select>
     </label>
@@ -445,7 +447,6 @@
         <fieldset>
           <legend>Show only</legend>
           <label class="field">Min. listings of the item <input id="minListings" type="number" min="0" step="1"></label>
-          <label class="field">My skill (hide crafts above it) <input id="maxSkill" type="number" min="0" max="300" step="1" placeholder="Show all"></label>
           <label class="field check"><input id="hideIncomplete" type="checkbox" checked> Hide recipes missing a price</label>
           <label class="field check"><input id="hideScarce" type="checkbox"> Hide crafts needing a scarce reagent</label>
           <label class="field check"><input id="favOnly" type="checkbox"> Show favorites only</label>
@@ -490,7 +491,7 @@
   </div>
 
   <div id="tab-lvl" class="tabpanel" hidden>
-    <p class="lead">A rough leveling guide for the chosen profession: recipes sorted by lowest net cost (reagents minus what the result resells for). Use the Skill tier filter above to focus on your level. Forever's data does not include skill-up ranges, so check the recipe's color in game.</p>
+    <p class="lead">A rough leveling guide for the chosen profession: recipes sorted by lowest net cost (reagents minus what the result resells for). Use the My skill box above to hide recipes you can't craft yet. Forever's data does not include skill-up ranges, so check the recipe's color in game.</p>
     <div id="lvlBody"></div>
   </div>
 

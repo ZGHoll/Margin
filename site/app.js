@@ -29,7 +29,11 @@
 
   function computeRows(data, s) {
     var rows = [];
-    recipesFor(data, s.profession).forEach(function (recipe) {
+    var allRecipes = recipesFor(data, s.profession);
+    var tierSeen = {};
+    allRecipes.forEach(function (recipe) { if (recipe.tier) tierSeen[recipe.tier] = 1; });
+    var multiTier = Object.keys(tierSeen).length > 1;
+    allRecipes.forEach(function (recipe) {
       var cost = 0;
       var missing = [];
       var scarce = [];
@@ -62,6 +66,7 @@
         rawCost: missing.length ? null : cost,
         name: recipe.name,
         tier: recipe.tier || "",
+        tierLabel: multiTier ? (recipe.tier || "") : "",
         skill: recipe.skill || 0,
         skillNote: recipe.skill_note || "",
         qty: recipe.qty || 1,
@@ -196,7 +201,7 @@
       var buy = r.itemId ? priceFor(data, s.house, r.itemId, s.buyBasis, false) : null;
       if (!buy || r.rawCost === null) return;
       var worth = buy.price * r.qty;
-      out.push({ id: r.id, name: r.name, tier: r.tier, skill: r.skill, skillNote: r.skillNote, qty: r.qty, craft: r.rawCost, buy: worth, save: worth - r.rawCost,
+      out.push({ id: r.id, name: r.name, tier: r.tier, tierLabel: r.tierLabel, skill: r.skill, skillNote: r.skillNote, qty: r.qty, craft: r.rawCost, buy: worth, save: worth - r.rawCost,
                  pct: r.rawCost > 0 ? (worth - r.rawCost) / r.rawCost : null, listings: r.listings });
     });
     out.sort(function (a, b) { return b.save - a.save; });
@@ -232,7 +237,7 @@
     var rows = computeRows(data, Object.assign({}, s, { hideIncomplete: false, hideScarce: false, minListings: 0 }));
     return rows.filter(function (r) { return r.rawCost !== null; }).map(function (r) {
       var resale = r.sell !== null ? r.qty * r.sell * (1 - s.cut) : 0;
-      return { id: r.id, name: r.name, tier: r.tier, skill: r.skill, skillNote: r.skillNote, cost: r.rawCost, resale: resale, net: r.rawCost - resale, sellable: r.sell !== null };
+      return { id: r.id, name: r.name, tier: r.tier, tierLabel: r.tierLabel, skill: r.skill, skillNote: r.skillNote, cost: r.rawCost, resale: resale, net: r.rawCost - resale, sellable: r.sell !== null };
     }).sort(function (a, b) { return a.net - b.net; });
   }
 
@@ -423,6 +428,9 @@
     recipesFor(data, professionName).forEach(function (r) { if (r.tier && tiers.indexOf(r.tier) === -1) tiers.push(r.tier); });
     tiers.forEach(function (t) { var o = el("option", t); o.value = t; tierSelect.appendChild(o); });
     tierSelect.value = keep && tiers.indexOf(keep) !== -1 ? keep : "";
+    var multi = tiers.length > 1;
+    $("tierField").hidden = !multi;
+    $("toolbar").classList.toggle("four", multi);
   }
 
   function professionNames() {
@@ -566,7 +574,7 @@
     var card = el("div", null, "medal r" + place);
     card.appendChild(el("div", "#" + place + " best craft", "rank"));
     card.appendChild(el("h3", r.name));
-    card.appendChild(el("div", r.tier || " ", "tier"));
+    card.appendChild(el("div", [r.tierLabel, skillText(r)].filter(Boolean).join(" · ") || " ", "tier"));
     card.appendChild(el("div", formatGold(r.profit), "big"));
     card.appendChild(el("div", "profit per craft" + (r.roi === null ? "" : " - " + Math.round(r.roi * 100) + "% return"), "sub"));
     return card;
@@ -633,7 +641,7 @@
 
       var nameCell = el("td");
       nameCell.appendChild(el("div", r.name, "rname"));
-      var sub = [r.tier, skillText(r)].filter(Boolean).join(" · ");
+      var sub = [r.tierLabel, skillText(r)].filter(Boolean).join(" · ");
       if (sub) nameCell.appendChild(el("div", sub, "rtier"));
       if (r.status !== "ok") nameCell.appendChild(el("div", r.status, "warn"));
       if (r.scarce.length) nameCell.appendChild(el("span", "Scarce reagent: " + r.scarce.join(", "), "badge"));
@@ -775,7 +783,7 @@
     rows.slice(0, 200).forEach(function (r) {
       var name = el("div");
       name.appendChild(el("div", r.name, "rname"));
-      var cvbSub = [r.tier, skillText(r)].filter(Boolean).join(" · ");
+      var cvbSub = [r.tierLabel, skillText(r)].filter(Boolean).join(" · ");
       if (cvbSub) name.appendChild(el("div", cvbSub, "rtier"));
       addRow(t, [name, formatGold(r.craft), formatGold(r.buy), el("span", formatGold(r.save), r.save >= 0 ? "pos" : "neg"), pct(r.pct)]);
     });
@@ -825,7 +833,7 @@
     rows.slice(0, 200).forEach(function (r) {
       var name = el("div");
       name.appendChild(el("div", r.name, "rname"));
-      var sub = [r.tier, skillText(r)].filter(Boolean).join(" · ") + (r.sellable ? "" : ((r.tier || r.skill) ? " - " : "") + "no auction price, counted as not resellable");
+      var sub = [r.tierLabel, skillText(r)].filter(Boolean).join(" · ") + (r.sellable ? "" : ((r.tierLabel || r.skill) ? " - " : "") + "no auction price, counted as not resellable");
       if (sub) name.appendChild(el("div", sub, "rtier"));
       addRow(t, [name, formatGold(r.cost), r.sellable ? formatGold(r.resale) : "-", el("span", formatGold(r.net), r.net <= 0 ? "pos" : "")]);
     });
