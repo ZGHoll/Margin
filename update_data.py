@@ -266,11 +266,18 @@ def apply_skill_requirements(profession_data, config):
             total += 1
             recipe.pop("skill", None)
             recipe.pop("skill_note", None)
-            rec, how = known.get(str(recipe["id"])), "id"
-            if rec is None and recipe.get("item_id") and by_item.get(recipe["item_id"]):
+            rec, how = None, ""
+            # Blizzard recipe ids are not always the library's spell ids, so an id match only counts
+            # when the crafted item or the name agrees too.
+            if recipe.get("item_id") and by_item.get(recipe["item_id"]):
                 rec, how = known.get(str(by_item[recipe["item_id"]])), "item"
             if rec is None and by_name.get(normalize_name(recipe["name"])):
                 rec, how = known.get(str(by_name[normalize_name(recipe["name"])])), "name"
+            if rec is None:
+                same_id = known.get(str(recipe["id"]))
+                if same_id and ((recipe.get("item_id") and same_id.get("i") == recipe["item_id"])
+                                or normalize_name(same_id.get("n", "")) == normalize_name(recipe["name"])):
+                    rec, how = same_id, "id"
             if rec is None or not rec.get("s"):
                 continue
             matched += 1
