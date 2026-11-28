@@ -12,6 +12,7 @@ endorsed by Blizzard Entertainment.
 - **Crafting rankings:** every recipe for the chosen profession, ranked by profit or return, with the top three highlighted.
   Click a recipe to see its reagents, where each price came from, and price history charts.
   Flags show recipes that need a scarce reagent or make an item with a thin market (fewer than 3 listed).
+- **Skill requirements:** each recipe shows the profession skill needed to craft it (for example "Skill 150"), and a "My skill" filter hides crafts above your skill. It also applies to Craft vs buy and the Leveling helper. A ? means the number is unconfirmed.
 - **Shopping list:** press **+** on any recipe. The list totals every reagent, the cost, the expected sales after the auction
   house cut and the expected profit, and shows the cheapest auction house for each reagent. It can be copied as text.
 - **Craft vs buy:** compares the cost to make an item with the price to buy it.
@@ -46,6 +47,7 @@ endorsed by Blizzard Entertainment.
   page keeps showing the last good data, with a warning when it is more than 4 hours old.
 - Only prices for items used in recipes are published, not the whole auction house. Read Blizzard's API terms before sharing widely.
 - No Blizzard art, logos or icons are used.
+- Skill requirements come from LibProfessionDB by Pimptasty (MIT licence, see `THIRD_PARTY_NOTICES.md`).
 - Keep your Blizzard secret only in GitHub's secrets. If it is ever exposed, create a new one at develop.battle.net.
 
 ## Feedback
