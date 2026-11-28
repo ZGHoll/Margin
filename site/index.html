@@ -445,6 +445,7 @@
         <fieldset>
           <legend>Show only</legend>
           <label class="field">Min. listings of the item <input id="minListings" type="number" min="0" step="1"></label>
+          <label class="field">My skill (hide crafts above it) <input id="maxSkill" type="number" min="0" max="300" step="1" placeholder="Show all"></label>
           <label class="field check"><input id="hideIncomplete" type="checkbox" checked> Hide recipes missing a price</label>
           <label class="field check"><input id="hideScarce" type="checkbox"> Hide crafts needing a scarce reagent</label>
           <label class="field check"><input id="favOnly" type="checkbox"> Show favorites only</label>
@@ -468,7 +469,7 @@
     </table>
   </div>
   <div id="rankMore" class="more-wrap" hidden></div>
-  <p class="hint">Click a recipe to see its reagents and where each price came from. "Scarce" and "thin market" mean fewer than 3 items are listed, so the price may not hold. Estimates only: deposits are not included.</p>
+  <p class="hint">Click a recipe to see its reagents and where each price came from. "Scarce" and "thin market" mean fewer than 3 items are listed, so the price may not hold. "Skill" is the profession skill needed to craft it; a ? means that number is unconfirmed. Estimates only: deposits are not included.</p>
 
   </div>
 
@@ -526,6 +527,7 @@
         <h2>Good to know</h2>
         <ul>
           <li>Prices are hourly snapshots and can lag what you see in game.</li>
+          <li>Skill requirements come from the open-source LibProfessionDB by Pimptasty. A ? means the number is unconfirmed for Forever, so check in game.</li>
           <li>Deposits are not included. The cut is 5% at faction houses and 15% at neutral ones; pick yours in the filters.</li>
           <li>Blizzard has not published official documentation for WoW: Forever's data, so some items or recipes may be missing or change without notice.</li>
           <li>Treat every number as an estimate and check the in-game auction house before you commit a lot of gold.</li>

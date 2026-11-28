@@ -62,6 +62,8 @@
         rawCost: missing.length ? null : cost,
         name: recipe.name,
         tier: recipe.tier || "",
+        skill: recipe.skill || 0,
+        skillNote: recipe.skill_note || "",
         qty: recipe.qty || 1,
         sell: sellFound ? sellFound.price : null,
         sellSource: sellFound ? sellFound.source : null,
@@ -86,6 +88,7 @@
       if (s.tier && r.tier !== s.tier) return false;
       if (s.hideIncomplete && r.status !== "ok") return false;
       if (s.hideScarce && r.scarce.length) return false;
+      if (s.maxSkill > 0 && r.skill > s.maxSkill) return false;
       if (s.minListings > 0 && (r.status !== "ok" || r.listings < s.minListings)) return false;
       return true;
     });
@@ -98,6 +101,10 @@
       return b[key] - a[key];
     });
     return rows;
+  }
+
+  function skillText(r) {
+    return r.skill ? "Skill " + r.skill + (r.skillNote ? "?" : "") : "";
   }
 
   function formatGold(g) {
@@ -133,7 +140,7 @@
   }
 
   function shoppingTotals(data, s, list) {
-    var base = Object.assign({}, s, { hideIncomplete: false, hideScarce: false, search: "", tier: "", minListings: 0 });
+    var base = Object.assign({}, s, { hideIncomplete: false, hideScarce: false, search: "", tier: "", minListings: 0, maxSkill: 0 });
     var cache = {}, lines = [], need = {}, revenue = 0;
     Object.keys(list).forEach(function (key) {
       var qty = list[key];
@@ -189,7 +196,7 @@
       var buy = r.itemId ? priceFor(data, s.house, r.itemId, s.buyBasis, false) : null;
       if (!buy || r.rawCost === null) return;
       var worth = buy.price * r.qty;
-      out.push({ id: r.id, name: r.name, tier: r.tier, qty: r.qty, craft: r.rawCost, buy: worth, save: worth - r.rawCost,
+      out.push({ id: r.id, name: r.name, tier: r.tier, skill: r.skill, skillNote: r.skillNote, qty: r.qty, craft: r.rawCost, buy: worth, save: worth - r.rawCost,
                  pct: r.rawCost > 0 ? (worth - r.rawCost) / r.rawCost : null, listings: r.listings });
     });
     out.sort(function (a, b) { return b.save - a.save; });
@@ -200,7 +207,7 @@
   function consumableRows(data, s) {
     var out = [];
     (data.professions || []).forEach(function (p) {
-      var base = Object.assign({}, s, { profession: p.name, hideIncomplete: false, hideScarce: false, search: "", tier: "", minListings: 0 });
+      var base = Object.assign({}, s, { profession: p.name, hideIncomplete: false, hideScarce: false, search: "", tier: "", minListings: 0, maxSkill: 0 });
       computeRows(data, base).forEach(function (r) {
         if (p.name !== "Cooking" && !CONSUMABLE_RE.test(r.name)) return;
         var buy = r.itemId ? priceFor(data, s.house, r.itemId, s.buyBasis, false) : null;
@@ -225,7 +232,7 @@
     var rows = computeRows(data, Object.assign({}, s, { hideIncomplete: false, hideScarce: false, minListings: 0 }));
     return rows.filter(function (r) { return r.rawCost !== null; }).map(function (r) {
       var resale = r.sell !== null ? r.qty * r.sell * (1 - s.cut) : 0;
-      return { id: r.id, name: r.name, tier: r.tier, cost: r.rawCost, resale: resale, net: r.rawCost - resale, sellable: r.sell !== null };
+      return { id: r.id, name: r.name, tier: r.tier, skill: r.skill, skillNote: r.skillNote, cost: r.rawCost, resale: resale, net: r.rawCost - resale, sellable: r.sell !== null };
     }).sort(function (a, b) { return a.net - b.net; });
   }
 
@@ -293,6 +300,7 @@
       cut: Math.max(0, Math.min(0.5, parseFloat($("cut").value) / 100 || 0)),
       rankBy: $("rankBy").value,
       minListings: parseInt($("minListings").value, 10) || 0,
+      maxSkill: Math.max(0, parseInt($("maxSkill").value, 10) || 0),
       search: $("search").value,
       tier: $("tier").value,
       hideIncomplete: $("hideIncomplete").checked,
@@ -572,7 +580,7 @@
     var body = $("rows");
     body.textContent = "";
 
-    var incomplete = computeRows(data, Object.assign({}, s, { hideIncomplete: false, search: "", tier: "", minListings: 0, hideScarce: false }))
+    var incomplete = computeRows(data, Object.assign({}, s, { hideIncomplete: false, search: "", tier: "", minListings: 0, maxSkill: 0, hideScarce: false }))
       .filter(function (r) { return r.status !== "ok"; }).length;
 
     var podium = $("podium");
@@ -625,7 +633,8 @@
 
       var nameCell = el("td");
       nameCell.appendChild(el("div", r.name, "rname"));
-      if (r.tier) nameCell.appendChild(el("div", r.tier, "rtier"));
+      var sub = [r.tier, skillText(r)].filter(Boolean).join(" · ");
+      if (sub) nameCell.appendChild(el("div", sub, "rtier"));
       if (r.status !== "ok") nameCell.appendChild(el("div", r.status, "warn"));
       if (r.scarce.length) nameCell.appendChild(el("span", "Scarce reagent: " + r.scarce.join(", "), "badge"));
       if (r.status === "ok" && r.listings < 3) nameCell.appendChild(el("span", "Thin market (" + r.listings + " listed)", "badge"));
@@ -766,7 +775,8 @@
     rows.slice(0, 200).forEach(function (r) {
       var name = el("div");
       name.appendChild(el("div", r.name, "rname"));
-      if (r.tier) name.appendChild(el("div", r.tier, "rtier"));
+      var cvbSub = [r.tier, skillText(r)].filter(Boolean).join(" · ");
+      if (cvbSub) name.appendChild(el("div", cvbSub, "rtier"));
       addRow(t, [name, formatGold(r.craft), formatGold(r.buy), el("span", formatGold(r.save), r.save >= 0 ? "pos" : "neg"), pct(r.pct)]);
     });
     box.appendChild(t.wrap);
@@ -815,7 +825,7 @@
     rows.slice(0, 200).forEach(function (r) {
       var name = el("div");
       name.appendChild(el("div", r.name, "rname"));
-      var sub = (r.tier || "") + (r.sellable ? "" : (r.tier ? " - " : "") + "no auction price, counted as not resellable");
+      var sub = [r.tier, skillText(r)].filter(Boolean).join(" · ") + (r.sellable ? "" : ((r.tier || r.skill) ? " - " : "") + "no auction price, counted as not resellable");
       if (sub) name.appendChild(el("div", sub, "rtier"));
       addRow(t, [name, formatGold(r.cost), r.sellable ? formatGold(r.resale) : "-", el("span", formatGold(r.net), r.net <= 0 ? "pos" : "")]);
     });
@@ -953,6 +963,7 @@
     $("cut").value = saved.cut !== undefined ? Math.round(saved.cut * 1000) / 10 : data.ah_cut * 100;
     $("rankBy").value = saved.rankBy || "profit";
     $("minListings").value = saved.minListings || 0;
+    $("maxSkill").value = saved.maxSkill || "";
     $("hideIncomplete").checked = saved.hideIncomplete !== false;
     $("hideScarce").checked = !!saved.hideScarce;
     $("favOnly").checked = !!saved.favOnly;
@@ -1027,7 +1038,7 @@
       fb.hidden = false;
     }
 
-    ["house", "buyBasis", "sellBasis", "cut", "rankBy", "minListings", "tier", "hideIncomplete", "hideScarce", "favOnly"].forEach(function (id) {
+    ["house", "buyBasis", "sellBasis", "cut", "rankBy", "minListings", "maxSkill", "tier", "hideIncomplete", "hideScarce", "favOnly"].forEach(function (id) {
       $(id).addEventListener("change", render);
     });
     professionSelect.addEventListener("change", onProfessionChange);
