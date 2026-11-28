@@ -239,6 +239,50 @@ def get_vendor_prices(token, region, config, item_ids):
 
 
 # ----------------------------------------------------------------------------
+# Skill needed to craft each recipe (from skill_requirements.json)
+# ----------------------------------------------------------------------------
+def normalize_name(name):
+    return "".join(ch for ch in str(name).lower() if ch.isalnum())
+
+
+def apply_skill_requirements(profession_data, config):
+    """Adds recipe['skill'] (profession skill needed) and recipe['skill_note'] ('unconfirmed' when the
+    value was borrowed from Vanilla). Data: LibProfessionDB (MIT licence), see skill_requirements.json."""
+    table = load_json(ROOT / "skill_requirements.json", {}) or {}
+    by_profession = table.get("professions") or {}
+    ids = {p["name"].lower(): p.get("fallback_id") for p in professions_from_config(config)}
+    total = matched = 0
+    methods = {"id": 0, "item": 0, "name": 0}
+    for profession in profession_data:
+        known = by_profession.get(str(ids.get(profession["name"].lower()))) or {}
+        by_item, by_name = {}, {}
+        for spell, rec in known.items():
+            for key, index in ((rec.get("i"), by_item), (normalize_name(rec.get("n", "")), by_name)):
+                if not key:
+                    continue
+                # the same item or name used by more than one recipe: do not guess
+                index[key] = spell if key not in index else None
+        for recipe in profession["recipes"]:
+            total += 1
+            recipe.pop("skill", None)
+            recipe.pop("skill_note", None)
+            rec, how = known.get(str(recipe["id"])), "id"
+            if rec is None and recipe.get("item_id") and by_item.get(recipe["item_id"]):
+                rec, how = known.get(str(by_item[recipe["item_id"]])), "item"
+            if rec is None and by_name.get(normalize_name(recipe["name"])):
+                rec, how = known.get(str(by_name[normalize_name(recipe["name"])])), "name"
+            if rec is None or not rec.get("s"):
+                continue
+            matched += 1
+            methods[how] += 1
+            recipe["skill"] = rec["s"]
+            if rec.get("k") in ("borrowed", "approx"):
+                recipe["skill_note"] = "unconfirmed"
+    print(f"Skill requirements found for {matched} of {total} recipes "
+          f"(matched by recipe id {methods['id']}, by crafted item {methods['item']}, by name {methods['name']}).")
+
+
+# ----------------------------------------------------------------------------
 # Auction prices
 # ----------------------------------------------------------------------------
 def weighted_percentile(sorted_entries, fraction):
@@ -482,6 +526,10 @@ def main():
     reagent_ids = {r["id"] for recipe in all_recipes for r in recipe["reagents"]}
     output_ids = {recipe["item_id"] for recipe in all_recipes if recipe["item_id"]}
     vendor = get_vendor_prices(token, region, config, sorted(reagent_ids))
+    try:
+        apply_skill_requirements(profession_data, config)
+    except Exception as err:  # skill requirements are a bonus, never worth stopping the update for
+        print(f"WARNING: skill requirements skipped: {err}", file=sys.stderr)
     wanted = reagent_ids | output_ids
     ruleset_list = config.get("rulesets") or [{"id": ruleset, "name": RULESET_NAMES.get(ruleset, f"Ruleset {ruleset}")}]
     results, ruleset_names = {}, {}
